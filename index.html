@@ -1,25 +1,540 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>能量工作室 — TON618</title>
+
 <style>
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#030206;color:#f5f1fb;font-family:Arial,"Noto Sans TC",sans-serif;overflow-x:hidden}body:before{content:"";position:fixed;inset:0;z-index:-3;background:radial-gradient(circle at 78% 18%,rgba(104,40,210,.18),transparent 28%),radial-gradient(circle at 18% 65%,rgba(80,20,150,.13),transparent 30%),#030206}.stars{position:fixed;inset:0;z-index:-2;opacity:.55;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#a96cff 1px,transparent 1px),radial-gradient(#fff 1px,transparent 1px);background-size:173px 211px,257px 319px,391px 287px;background-position:20px 30px,70px 100px,130px 40px}.grid{position:fixed;inset:0;z-index:-1;opacity:.08;background-image:linear-gradient(rgba(180,120,255,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(180,120,255,.25) 1px,transparent 1px);background-size:80px 80px;mask-image:linear-gradient(to bottom,black,transparent 75%)}header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;border-bottom:1px solid rgba(200,160,255,.12);background:rgba(3,2,6,.72);backdrop-filter:blur(20px)}.logo{font-weight:800;letter-spacing:.14em}.logo span{display:inline-block;width:9px;height:9px;border-radius:50%;background:#000;margin-right:10px;box-shadow:0 0 0 3px #8d4dff55,0 0 18px #9b55ff}.nav{display:flex;gap:30px}.nav a{color:#aaa2b4;text-decoration:none;font-size:12px;letter-spacing:.14em}.nav a:hover{color:#fff}.cta{color:#0a0710!important;background:#f5f0fb;padding:10px 16px;border-radius:99px;font-weight:700}.hero{min-height:920px;max-width:1280px;margin:auto;padding:140px 5vw 70px;display:grid;grid-template-columns:1fr 1fr;align-items:center}.eyebrow{font:11px monospace;letter-spacing:.25em;color:#a67ce1}.hero h1{font-size:clamp(56px,7vw,100px);line-height:.98;letter-spacing:-.075em;margin:22px 0}.hero h1 span{background:linear-gradient(100deg,#fff,#cba2ff 58%,#7d35ff);color:transparent;background-clip:text}.hero p{color:#a49cab;line-height:2;font-size:15px}.buttons{display:flex;gap:12px;margin-top:32px}.btn{padding:14px 22px;text-decoration:none;border-radius:5px;font-size:13px}.primary{background:#f5f0fb;color:#09060d;font-weight:800}.secondary{border:1px solid #ffffff1d;color:#ddd6e5}.blackhole{height:560px;position:relative;display:grid;place-items:center}.hole{position:absolute;width:245px;height:245px;border-radius:50%;background:#000;z-index:5;box-shadow:0 0 45px 25px #000,0 0 80px 5px #8c45ff33}.disk{position:absolute;width:570px;height:190px;border-radius:50%;background:conic-gradient(from 15deg,transparent 0 12%,#5620df 25%,#d98cff 39%,#fff1ff 45%,#7d2dff 53%,transparent 68%);filter:blur(11px);transform:rotate(-17deg);animation:rotate 9s linear infinite}.disk:after{content:"";position:absolute;inset:36px 18px;border-radius:50%;background:#030206}.ring{position:absolute;width:590px;height:270px;border:1px solid #b276ff42;border-radius:50%;transform:rotate(-18deg);animation:float 5s ease-in-out infinite}.ring2{width:450px;height:400px;transform:rotate(45deg);border-color:#ffffff12;animation-duration:7s}.label{position:absolute;top:73%;font:10px monospace;color:#746a80;letter-spacing:.2em;text-align:center}.label b{color:#a46bdf}.scroll{position:absolute;bottom:25px;left:5vw;font:10px monospace;color:#5f5668;letter-spacing:.2em}.section{max-width:1280px;margin:auto;padding:130px 5vw}.section-title{display:flex;justify-content:space-between;align-items:end;margin-bottom:50px}.section h2{font-size:62px;letter-spacing:-.07em;margin:10px 0}.muted{color:#777080;font-size:13px;line-height:1.9}.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{min-height:390px;padding:38px;border:1px solid #ffffff12;background:linear-gradient(145deg,#0b0812,#07060a);position:relative;overflow:hidden;transition:.35s}.card:hover{transform:translateY(-8px);border-color:#a35cff66;box-shadow:0 25px 70px #5b20a51c}.card:after{content:"";position:absolute;width:250px;height:250px;right:-100px;bottom:-120px;border-radius:50%;background:#8238ff24;filter:blur(45px)}.num{font:11px monospace;color:#665d70}.icon{font-size:44px;margin:70px 0 18px;color:#a467ff}.card h3{font-size:31px;margin:0 0 12px}.tags{position:absolute;bottom:32px;display:flex;gap:8px}.tag{border:1px solid #ffffff16;padding:7px 10px;border-radius:99px;color:#817887;font:10px monospace}.prices{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.price{min-height:300px;padding:25px 20px;border:1px solid #ffffff12;background:#08070b;display:flex;flex-direction:column;transition:.3s}.price:hover{transform:translateY(-7px);border-color:#a35cff66}.price.hot{background:linear-gradient(145deg,#1a0c2c,#08070b 60%)}.price small{font:9px monospace;color:#756c7d;letter-spacing:.14em}.price h3{font-size:20px;margin:30px 0 10px}.amount{font-size:44px;font-weight:800}.amount i{font-style:normal;font:10px monospace;color:#777080}.price button{margin-top:auto;padding:11px;background:transparent;border:1px solid #ffffff1c;color:#eee;border-radius:4px;cursor:pointer}.price button:hover{background:#fff;color:#09070d}.service-block{display:grid;grid-template-columns:.7fr 1.3fr;gap:18px;margin-bottom:22px;border:1px solid #ffffff12;background:linear-gradient(145deg,#0b0812,#07060a);padding:34px;position:relative;overflow:hidden}.service-block:after{content:"";position:absolute;width:330px;height:330px;right:-130px;top:-170px;border-radius:50%;background:#8238ff18;filter:blur(55px);pointer-events:none}.service-head{position:relative;z-index:1}.service-head .icon{font-size:42px;margin:34px 0 12px;color:#a467ff}.service-head h3{font-size:32px;margin:0 0 10px}.service-head .tags{display:flex;gap:8px;margin-top:28px;position:static}.service-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative;z-index:1}.music-block .service-prices{grid-template-columns:repeat(2,1fr)}
-.works{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:14px}.work{border:1px solid #ffffff12;background:#08070b}.art{height:310px;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(circle,#180b29,#050407 62%)}.art:before{content:"";width:150px;height:150px;border-radius:50%;background:#000;box-shadow:0 0 0 15px #9b52ff12,0 0 80px 25px #9b52ff3a}.art:after{content:"TON618";position:absolute;font:11px monospace;letter-spacing:.3em;color:#71687b}.work:nth-child(2) .art{background:radial-gradient(circle at 70% 25%,#27113c,#050407 60%)}.work:nth-child(2) .art:before{width:105px;height:105px}.work:nth-child(3) .art{background:linear-gradient(135deg,#09070c,#1a0c25)}.work:nth-child(3) .art:before{width:230px;height:230px;background:transparent;border:1px solid #b173ff33;box-shadow:inset 0 0 80px #8c3cff18}.work-info{padding:18px}.work-info span{font:9px monospace;color:#665e6e}.work-info h3{margin:7px 0}.orderbox{display:grid;grid-template-columns:.75fr 1.25fr;border:1px solid #ffffff14;background:linear-gradient(120deg,#140b20,#08070b)}.intro{padding:50px;border-right:1px solid #ffffff12}.intro h2{font-size:55px;line-height:1;letter-spacing:-.07em}.contact{margin-top:50px;font:11px monospace;color:#817789;line-height:2}.form{padding:50px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.form label{font:10px monospace;color:#817789;display:flex;flex-direction:column;gap:7px}.form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:1/-1}.form input,.form select,.form textarea{background:#050407;border:1px solid #ffffff16;color:#eee;padding:13px;border-radius:3px;outline:0}.form textarea{min-height:130px}.form button{border:0;padding:15px;background:#f5f0fb;color:#09070d;font-weight:800;cursor:pointer}.status{font-size:11px;color:#a779d2;min-height:18px}footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-content:space-between;color:#5f5767;font:10px monospace}@keyframes rotate{to{transform:rotate(343deg)}}@keyframes float{50%{transform:rotate(-18deg) scale(1.04)}}
-@media(max-width:900px){.nav{display:none}.service-block{grid-template-columns:1fr}.service-prices{grid-template-columns:repeat(3,1fr)}.music-block .service-prices{grid-template-columns:repeat(2,1fr)}.hero{grid-template-columns:1fr;padding-top:120px}.blackhole{order:-1;height:420px}.prices{grid-template-columns:1fr 1fr}.works{grid-template-columns:1fr 1fr}.work:first-child{grid-column:1/-1}.orderbox{grid-template-columns:1fr}.intro{border-right:0;border-bottom:1px solid #ffffff12}}
-@media(max-width:600px){.service-block{padding:25px 20px}.service-prices,.music-block .service-prices{grid-template-columns:1fr}.hero{padding:110px 22px 50px}.hero h1{font-size:55px}.disk{width:390px}.ring{width:420px}.hole{width:150px;height:150px}.section{padding:85px 22px}.section-title{display:block}.section h2{font-size:48px}.cards,.prices,.works{grid-template-columns:1fr}.work:first-child{grid-column:auto}.form{grid-template-columns:1fr;padding:30px 22px}.form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:auto}.intro{padding:35px 22px}footer{flex-direction:column;gap:12px}}
-.main-nav{display:flex;align-items:center;gap:42px}.main-nav a{padding:8px 4px;white-space:nowrap}@media(max-width:700px){.main-nav{gap:18px}.main-nav a{font-size:13px}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#030206;color:#f5f1fb;font-family:Arial,"Noto Sans TC",sans-serif;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;z-index:-3;background:radial-gradient(circle at 78% 18%,rgba(104,40,210,.18),transparent 28%),radial-gradient(circle at 18% 65%,rgba(80,20,150,.13),transparent 30%),#030206}
+.stars{position:fixed;inset:0;z-index:-2;opacity:.55;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#a96cff 1px,transparent 1px),radial-gradient(#fff 1px,transparent 1px);background-size:173px 211px,257px 319px,391px 287px;background-position:20px 30px,70px 100px,130px 40px}
+.grid{position:fixed;inset:0;z-index:-1;opacity:.08;background-image:linear-gradient(rgba(180,120,255,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(180,120,255,.25) 1px,transparent 1px);background-size:80px 80px;mask-image:linear-gradient(to bottom,black,transparent 75%)}
+header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;border-bottom:1px solid rgba(200,160,255,.12);background:rgba(3,2,6,.72);backdrop-filter:blur(20px)}
+.logo{font-weight:800;letter-spacing:.14em}
+.logo span{display:inline-block;width:9px;height:9px;border-radius:50%;background:#000;margin-right:10px;box-shadow:0 0 0 3px #8d4dff55,0 0 18px #9b55ff}
+.main-nav{display:flex;align-items:center;gap:42px}
+.main-nav a{padding:8px 4px;white-space:nowrap;color:#aaa2b4;text-decoration:none;font-size:12px;letter-spacing:.14em}
+.main-nav a:hover{color:#fff}
+.hero{min-height:920px;max-width:1280px;margin:auto;padding:140px 5vw 70px;display:grid;grid-template-columns:1fr 1fr;align-items:center}
+.eyebrow{font:11px monospace;letter-spacing:.25em;color:#a67ce1}
+.hero h1{font-size:clamp(56px,7vw,100px);line-height:.98;letter-spacing:-.075em;margin:22px 0}
+.hero h1 span{background:linear-gradient(100deg,#fff,#cba2ff 58%,#7d35ff);color:transparent;background-clip:text}
+.hero p{color:#a49cab;line-height:2;font-size:15px}
+.buttons{display:flex;gap:12px;margin-top:32px}
+.btn{padding:14px 22px;text-decoration:none;border-radius:5px;font-size:13px}
+.primary{background:#f5f0fb;color:#09060d;font-weight:800}
+.secondary{border:1px solid #ffffff1d;color:#ddd6e5}
+.blackhole{height:560px;position:relative;display:grid;place-items:center}
+.hole{position:absolute;width:245px;height:245px;border-radius:50%;background:#000;z-index:5;box-shadow:0 0 45px 25px #000,0 0 80px 5px #8c45ff33}
+.disk{position:absolute;width:570px;height:190px;border-radius:50%;background:conic-gradient(from 15deg,transparent 0 12%,#5620df 25%,#d98cff 39%,#fff1ff 45%,#7d2dff 53%,transparent 68%);filter:blur(11px);transform:rotate(-17deg);animation:rotate 9s linear infinite}
+.disk:after{content:"";position:absolute;inset:36px 18px;border-radius:50%;background:#030206}
+.ring{position:absolute;width:590px;height:270px;border:1px solid #b276ff42;border-radius:50%;transform:rotate(-18deg);animation:float 5s ease-in-out infinite}
+.ring2{width:450px;height:400px;transform:rotate(45deg);border-color:#ffffff12;animation-duration:7s}
+.label{position:absolute;top:73%;font:10px monospace;color:#746a80;letter-spacing:.2em;text-align:center}
+.label b{color:#a46bdf}
+.section{max-width:1280px;margin:auto;padding:130px 5vw}
+.section-title{display:flex;justify-content:space-between;align-items:end;margin-bottom:50px}
+.section h2{font-size:62px;letter-spacing:-.07em;margin:10px 0}
+.muted{color:#777080;font-size:13px;line-height:1.9}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{min-height:390px;padding:38px;border:1px solid #ffffff12;background:linear-gradient(145deg,#0b0812,#07060a);position:relative;overflow:hidden;transition:.35s}
+.card:hover{transform:translateY(-8px);border-color:#a35cff66;box-shadow:0 25px 70px #5b20a51c}
+.card:after{content:"";position:absolute;width:250px;height:250px;right:-100px;bottom:-120px;border-radius:50%;background:#8238ff24;filter:blur(45px)}
+.num{font:11px monospace;color:#665d70}
+.icon{font-size:44px;margin:70px 0 18px;color:#a467ff}
+.card h3{font-size:31px;margin:0 0 12px}
+.tags{position:absolute;bottom:32px;display:flex;gap:8px}
+.tag{border:1px solid #ffffff16;padding:7px 10px;border-radius:99px;color:#817887;font:10px monospace}
+.prices{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.price{min-height:300px;padding:25px 20px;border:1px solid #ffffff12;background:#08070b;display:flex;flex-direction:column;transition:.3s}
+.price:hover{transform:translateY(-7px);border-color:#a35cff66}
+.price.hot{background:linear-gradient(145deg,#1a0c2c,#08070b 60%)}
+.price small{font:9px monospace;color:#756c7d;letter-spacing:.14em}
+.price h3{font-size:20px;margin:30px 0 10px}
+.amount{font-size:44px;font-weight:800}
+.amount i{font-style:normal;font:10px monospace;color:#777080}
+.price button{margin-top:auto;padding:11px;background:transparent;border:1px solid #ffffff1c;color:#eee;border-radius:4px;cursor:pointer}
+.price button:hover{background:#fff;color:#09070d}
+.service-block{display:grid;grid-template-columns:.7fr 1.3fr;gap:18px;margin-bottom:22px;border:1px solid #ffffff12;background:linear-gradient(145deg,#0b0812,#07060a);padding:34px;position:relative;overflow:hidden}
+.service-block:after{content:"";position:absolute;width:330px;height:330px;right:-130px;top:-170px;border-radius:50%;background:#8238ff18;filter:blur(55px);pointer-events:none}
+.service-head{position:relative;z-index:1}
+.service-head .icon{font-size:42px;margin:34px 0 12px;color:#a467ff}
+.service-head h3{font-size:32px;margin:0 0 10px}
+.service-head .tags{display:flex;gap:8px;margin-top:28px;position:static}
+.service-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative;z-index:1}
+.music-block .service-prices{grid-template-columns:repeat(2,1fr)}
+.works{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:14px}
+.work{border:1px solid #ffffff12;background:#08070b}
+.art{height:310px;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(circle,#180b29,#050407 62%)}
+.art:before{content:"";width:150px;height:150px;border-radius:50%;background:#000;box-shadow:0 0 0 15px #9b52ff12,0 0 80px 25px #9b52ff3a}
+.art:after{content:"TON618";position:absolute;font:11px monospace;letter-spacing:.3em;color:#71687b}
+.work:nth-child(2) .art{background:radial-gradient(circle at 70% 25%,#27113c,#050407 60%)}
+.work:nth-child(2) .art:before{width:105px;height:105px}
+.work:nth-child(3) .art{background:linear-gradient(135deg,#09070c,#1a0c25)}
+.work:nth-child(3) .art:before{width:230px;height:230px;background:transparent;border:1px solid #b173ff33;box-shadow:inset 0 0 80px #8c3cff18}
+.work-info{padding:18px}
+.work-info span{font:9px monospace;color:#665e6e}
+.work-info h3{margin:7px 0}
+.orderbox{display:grid;grid-template-columns:.75fr 1.25fr;border:1px solid #ffffff14;background:linear-gradient(120deg,#140b20,#08070b)}
+.intro{padding:50px;border-right:1px solid #ffffff12}
+.intro h2{font-size:55px;line-height:1;letter-spacing:-.07em}
+.contact{margin-top:50px;font:11px monospace;color:#817789;line-height:2}
+.form{padding:50px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form label{font:10px monospace;color:#817789;display:flex;flex-direction:column;gap:7px}
+.form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:1/-1}
+.form input,.form select,.form textarea{background:#050407;border:1px solid #ffffff16;color:#eee;padding:13px;border-radius:3px;outline:0}
+.form textarea{min-height:130px}
+.form button{border:0;padding:15px;background:#f5f0fb;color:#09070d;font-weight:800;cursor:pointer}
+.form button:disabled{opacity:.55;cursor:wait}
+.status{font-size:11px;color:#a779d2;min-height:18px}
+footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-content:space-between;color:#5f5767;font:10px monospace}
+
+@keyframes rotate{to{transform:rotate(343deg)}}
+@keyframes float{50%{transform:rotate(-18deg) scale(1.04)}}
+
+@media(max-width:900px){
+.nav{display:none}
+.service-block{grid-template-columns:1fr}
+.service-prices{grid-template-columns:repeat(3,1fr)}
+.music-block .service-prices{grid-template-columns:repeat(2,1fr)}
+.hero{grid-template-columns:1fr;padding-top:120px}
+.blackhole{order:-1;height:420px}
+.prices{grid-template-columns:1fr 1fr}
+.works{grid-template-columns:1fr 1fr}
+.work:first-child{grid-column:1/-1}
+.orderbox{grid-template-columns:1fr}
+.intro{border-right:0;border-bottom:1px solid #ffffff12}
+}
+
+@media(max-width:700px){
+.main-nav{gap:18px}
+.main-nav a{font-size:13px}
+}
+
+@media(max-width:600px){
+.service-block{padding:25px 20px}
+.service-prices,.music-block .service-prices{grid-template-columns:1fr}
+.hero{padding:110px 22px 50px}
+.hero h1{font-size:55px}
+.disk{width:390px}
+.ring{width:420px}
+.hole{width:150px;height:150px}
+.section{padding:85px 22px}
+.section-title{display:block}
+.section h2{font-size:48px}
+.cards,.prices,.works{grid-template-columns:1fr}
+.work:first-child{grid-column:auto}
+.form{grid-template-columns:1fr;padding:30px 22px}
+.form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:auto}
+.intro{padding:35px 22px}
+footer{flex-direction:column;gap:12px}
+}
 </style>
 </head>
-<body><div class="stars"></div><div class="grid"></div>
-<header><div class="logo"><span></span>能量工作室</div><nav class="main-nav"><a href="#editing">剪輯</a><a href="#music">編曲</a><a href="#order">下單</a></nav></header>
+
+<body>
+<div class="stars"></div>
+<div class="grid"></div>
+
+<header>
+  <div class="logo"><span></span>能量工作室</div>
+  <nav class="main-nav">
+    <a href="#editing">剪輯</a>
+    <a href="#music">編曲</a>
+    <a href="#order">下單</a>
+  </nav>
+</header>
+
 <main>
-<section class="hero"><div><div class="eyebrow">TON618</div><h1>把你的想法<br><span>變成作品。</span></h1><p>短影音剪輯 × 編曲<br>讓畫面與聲音，擁有屬於自己的能量。</p><div class="buttons"><a class="btn primary" href="#order">開始委託 ↗</a><a class="btn secondary" href="#works">查看作品</a></div></div><div class="blackhole"><div class="ring"></div><div class="ring ring2"></div><div class="disk"></div><div class="hole"></div><div class="label"><b>TON618</b></div></div></section>
-<section id="services" class="section"><div class="section-title"><div><div class="eyebrow">01 / SERVICES & PRICING</div><h2>服務</h2></div><div class="muted">每項服務的內容與價格<br>直接放在一起，一眼就能看懂。</div></div>
-<div id="editing" class="service-block"><div class="service-head"><div><div class="num">01 — VIDEO</div><div class="icon">◉</div><h3>短影音剪輯</h3><p class="muted">節奏剪輯、字幕、音效、BGM、畫面整理，適合 TikTok / Shorts / Reels。</p><div class="tags"><span class="tag">SHORTS</span><span class="tag">TIKTOK</span><span class="tag">REELS</span></div></div></div><div class="service-prices"><div class="price"><small>VIDEO / 01</small><h3>一部</h3><div class="amount"><i>HKD</i> $59</div><button data-service="短影音剪輯｜一部 HKD $59">選擇套餐</button></div><div class="price hot"><small>VIDEO / 02</small><h3>兩部</h3><div class="amount"><i>HKD</i> $99</div><button data-service="短影音剪輯｜兩部 HKD $99">選擇套餐</button></div><div class="price"><small>VIDEO / 03</small><h3>三部</h3><div class="amount"><i>HKD</i> $149</div><button data-service="短影音剪輯｜三部 HKD $149">選擇套餐</button></div></div></div>
-<div id="music" class="service-block music-block"><div class="service-head"><div><div class="num">02 — MUSIC</div><div class="icon">◌</div><h3>編曲</h3><p class="muted">依照你的旋律、Demo 或想法製作編曲，也可以加入基礎混音＋母帶。</p><div class="tags"><span class="tag">ARRANGEMENT</span><span class="tag">MIX</span><span class="tag">MASTER</span></div></div></div><div class="service-prices"><div class="price"><small>MUSIC / 01</small><h3>一首</h3><div class="amount"><i>HKD</i> $199</div><button data-service="編曲｜一首 HKD $199">選擇套餐</button></div><div class="price hot"><small>MUSIC / 02</small><h3>兩首</h3><div class="amount"><i>HKD</i> $379</div><button data-service="編曲｜兩首 HKD $379">選擇套餐</button></div></div></div></section>
-<section id="works" class="section"><div class="section-title"><div><div class="eyebrow">03 / SELECTED WORKS</div><h2>作品</h2></div></div><div class="works"><div class="work"><div class="art"></div><div class="work-info"><span>VIDEO EDITING</span><h3>你的影片作品會出現在這裡</h3></div></div><div class="work"><div class="art"></div><div class="work-info"><span>MUSIC</span><h3>TON618 SOUND</h3></div></div></div></section>
-<section id="order" class="section"><div class="orderbox"><div class="intro"><div class="eyebrow">04 / COMMISSION</div><h2>開始一個<br>委託。</h2><p class="muted">告訴我你想做什麼。<br>先從一個作品開始。</p><div class="contact">DISCORD<br>agc_ton618<br><br>INSTAGRAM / TIKTOK<br>@agc_ton618</div></div><form class="form" id="orderForm"><label>暱稱<input required name="name" placeholder="你的稱呼"></label><label>聯絡方式<select name="contactType"><option>Discord</option><option>Instagram</option><option>TikTok</option></select></label><label>帳號<input required name="contact" placeholder="例如 agc_ton618"></label><label>服務<select required name="service" id="service"><option value="">選擇服務</option><option>短影音剪輯｜一部 HKD $59</option><option>短影音剪輯｜兩部 HKD $99</option><option>短影音剪輯｜三部 HKD $149</option><option>編曲｜一首 HKD $199</option><option>編曲｜兩首 HKD $379</option></select></label><label>需求內容<textarea required name="details" placeholder="影片長度、風格、歌曲 BPM、參考作品……"></textarea></label><label>素材連結<input name="materials" placeholder="貼上 Google Drive 素材連結"></label><button type="submit">提交委託 ↗</button><div class="status" id="status"></div></form></div></section>
-</main><footer><strong>能量工作室 × TON618</strong><span>VIDEO EDITING / MUSIC ARRANGEMENT</span></footer>
-<script>const s=document.getElementById('service'),f=document.getElementById('orderForm'),st=document.getElementById('status');document.querySelectorAll('[data-service]').forEach(b=>b.onclick=()=>{s.value=b.dataset.service;document.getElementById('order').scrollIntoView({behavior:'smooth'});});f.addEventListener('submit',e=>{e.preventDefault();const d=new FormData(f);const text=`能量工作室委託\n暱稱：${d.get('name')}\n聯絡方式：${d.get('contactType')} / ${d.get('contact')}\n服務：${d.get('service')}\n需求：${d.get('details')}\n素材：${d.get('materials')||'未提供'}`;navigator.clipboard?.writeText(text);st.textContent='委託資料已整理並複製。正式版接入後，這裡會直接建立訂單。';});</script>
-</body></html>
+
+<section class="hero">
+  <div>
+    <div class="eyebrow">TON618</div>
+    <h1>把你的想法<br><span>變成作品。</span></h1>
+    <p>短影音剪輯 × 編曲<br>讓畫面與聲音，擁有屬於自己的能量。</p>
+    <div class="buttons">
+      <a class="btn primary" href="#order">開始委託 ↗</a>
+      <a class="btn secondary" href="#works">查看作品</a>
+    </div>
+  </div>
+
+  <div class="blackhole">
+    <div class="ring"></div>
+    <div class="ring ring2"></div>
+    <div class="disk"></div>
+    <div class="hole"></div>
+    <div class="label"><b>TON618</b></div>
+  </div>
+</section>
+
+<section id="services" class="section">
+  <div class="section-title">
+    <div>
+      <div class="eyebrow">01 / SERVICES & PRICING</div>
+      <h2>服務</h2>
+    </div>
+    <div class="muted">
+      每項服務的內容與價格<br>
+      直接放在一起，一眼就能看懂。
+    </div>
+  </div>
+
+  <div id="editing" class="service-block">
+    <div class="service-head">
+      <div>
+        <div class="num">01 — VIDEO</div>
+        <div class="icon">◉</div>
+        <h3>短影音剪輯</h3>
+        <p class="muted">
+          節奏剪輯、字幕、音效、BGM、畫面整理，適合 TikTok / Shorts / Reels。
+        </p>
+        <div class="tags">
+          <span class="tag">SHORTS</span>
+          <span class="tag">TIKTOK</span>
+          <span class="tag">REELS</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="service-prices">
+      <div class="price">
+        <small>VIDEO / 01</small>
+        <h3>一部</h3>
+        <div class="amount"><i>HKD</i> $59</div>
+        <button data-service="短影音剪輯｜一部 HKD $59">選擇套餐</button>
+      </div>
+
+      <div class="price hot">
+        <small>VIDEO / 02</small>
+        <h3>兩部</h3>
+        <div class="amount"><i>HKD</i> $99</div>
+        <button data-service="短影音剪輯｜兩部 HKD $99">選擇套餐</button>
+      </div>
+
+      <div class="price">
+        <small>VIDEO / 03</small>
+        <h3>三部</h3>
+        <div class="amount"><i>HKD</i> $149</div>
+        <button data-service="短影音剪輯｜三部 HKD $149">選擇套餐</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="music" class="service-block music-block">
+    <div class="service-head">
+      <div>
+        <div class="num">02 — MUSIC</div>
+        <div class="icon">◌</div>
+        <h3>編曲</h3>
+        <p class="muted">
+          依照你的旋律、Demo 或想法製作編曲，也可以加入基礎混音＋母帶。
+        </p>
+        <div class="tags">
+          <span class="tag">ARRANGEMENT</span>
+          <span class="tag">MIX</span>
+          <span class="tag">MASTER</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="service-prices">
+      <div class="price">
+        <small>MUSIC / 01</small>
+        <h3>一首</h3>
+        <div class="amount"><i>HKD</i> $199</div>
+        <button data-service="編曲｜一首 HKD $199">選擇套餐</button>
+      </div>
+
+      <div class="price hot">
+        <small>MUSIC / 02</small>
+        <h3>兩首</h3>
+        <div class="amount"><i>HKD</i> $379</div>
+        <button data-service="編曲｜兩首 HKD $379">選擇套餐</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="works" class="section">
+  <div class="section-title">
+    <div>
+      <div class="eyebrow">03 / SELECTED WORKS</div>
+      <h2>作品</h2>
+    </div>
+  </div>
+
+  <div class="works">
+    <div class="work">
+      <div class="art"></div>
+      <div class="work-info">
+        <span>VIDEO EDITING</span>
+        <h3>你的影片作品會出現在這裡</h3>
+      </div>
+    </div>
+
+    <div class="work">
+      <div class="art"></div>
+      <div class="work-info">
+        <span>MUSIC</span>
+        <h3>TON618 SOUND</h3>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="order" class="section">
+  <div class="orderbox">
+
+    <div class="intro">
+      <div class="eyebrow">04 / COMMISSION</div>
+      <h2>開始一個<br>委託。</h2>
+      <p class="muted">
+        告訴我你想做什麼。<br>
+        先從一個作品開始。
+      </p>
+
+      <div class="contact">
+        DISCORD<br>
+        agc_ton618
+        <br><br>
+        INSTAGRAM / TIKTOK<br>
+        @agc_ton618
+      </div>
+    </div>
+
+    <form class="form" id="orderForm">
+
+      <label>
+        暱稱
+        <input required name="name" id="name" placeholder="你的稱呼">
+      </label>
+
+      <label>
+        聯絡方式
+        <select name="contactType" id="contactType">
+          <option>Discord</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+        </select>
+      </label>
+
+      <label>
+        帳號
+        <input required name="contact" id="contact" placeholder="例如 agc_ton618">
+      </label>
+
+      <label>
+        服務
+        <select required name="service" id="service">
+          <option value="">選擇服務</option>
+          <option value="短影音剪輯｜一部 HKD $59">短影音剪輯｜一部 HKD $59</option>
+          <option value="短影音剪輯｜兩部 HKD $99">短影音剪輯｜兩部 HKD $99</option>
+          <option value="短影音剪輯｜三部 HKD $149">短影音剪輯｜三部 HKD $149</option>
+          <option value="編曲｜一首 HKD $199">編曲｜一首 HKD $199</option>
+          <option value="編曲｜兩首 HKD $379">編曲｜兩首 HKD $379</option>
+        </select>
+      </label>
+
+      <label>
+        需求內容
+        <textarea required name="details" id="details" placeholder="影片長度、風格、歌曲 BPM、參考作品……"></textarea>
+      </label>
+
+      <label>
+        素材連結
+        <input name="materials" id="materials" placeholder="貼上 Google Drive 素材連結">
+      </label>
+
+      <button type="submit" id="submitBtn">
+        提交委託 ↗
+      </button>
+
+      <div class="status" id="status"></div>
+
+    </form>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <strong>能量工作室 × TON618</strong>
+  <span>VIDEO EDITING / MUSIC ARRANGEMENT</span>
+</footer>
+
+<!-- Supabase JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ================================
+   Supabase 設定
+================================ */
+
+const SUPABASE_URL = "https://qtceqmnbeobsndpwnisf.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_RzkPac46JOSRgGi2k34Jug_ddHxE-Nh";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* ================================
+   網站功能
+================================ */
+
+const serviceSelect = document.getElementById("service");
+const orderForm = document.getElementById("orderForm");
+const statusText = document.getElementById("status");
+const submitButton = document.getElementById("submitBtn");
+
+
+/* 點擊價格套餐 → 自動選擇服務並滑到下單區 */
+
+document.querySelectorAll("[data-service]").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    serviceSelect.value = button.dataset.service;
+
+    document
+      .getElementById("order")
+      .scrollIntoView({
+        behavior: "smooth"
+      });
+
+  });
+
+});
+
+
+/* ================================
+   從套餐名稱取得價格與套餐
+================================ */
+
+function getPackageInfo(service) {
+
+  const packages = {
+
+    "短影音剪輯｜一部 HKD $59": {
+      package: "一部",
+      price: 59
+    },
+
+    "短影音剪輯｜兩部 HKD $99": {
+      package: "兩部",
+      price: 99
+    },
+
+    "短影音剪輯｜三部 HKD $149": {
+      package: "三部",
+      price: 149
+    },
+
+    "編曲｜一首 HKD $199": {
+      package: "一首",
+      price: 199
+    },
+
+    "編曲｜兩首 HKD $379": {
+      package: "兩首",
+      price: 379
+    }
+
+  };
+
+  return packages[service] || null;
+}
+
+
+/* ================================
+   提交訂單
+================================ */
+
+orderForm.addEventListener("submit", async event => {
+
+  event.preventDefault();
+
+  statusText.textContent = "";
+  submitButton.disabled = true;
+  submitButton.textContent = "提交中……";
+
+  try {
+
+    const formData = new FormData(orderForm);
+
+    const name = formData.get("name")?.trim();
+    const contactType = formData.get("contactType");
+    const contact = formData.get("contact")?.trim();
+    const service = formData.get("service");
+    const details = formData.get("details")?.trim();
+    const materials = formData.get("materials")?.trim() || "";
+
+    const packageInfo = getPackageInfo(service);
+
+    if (!packageInfo) {
+      throw new Error("請先選擇有效的服務套餐。");
+    }
+
+
+    /* 寫入 Supabase orders */
+
+    const { error } = await supabaseClient
+      .from("orders")
+      .insert([
+        {
+          service: service,
+          package: packageInfo.package,
+          price: packageInfo.price,
+          customer_name: name,
+          contact_type: contactType,
+          contact: contact,
+          details: details,
+          google_drive: materials,
+          status: "pending"
+        }
+      ]);
+
+
+    if (error) {
+      console.error("Supabase error:", error);
+      throw new Error("訂單提交失敗，請稍後再試。");
+    }
+
+
+    /* 成功 */
+
+    statusText.textContent =
+      "✓ 委託已成功提交！我會查看你的需求並與你聯絡。";
+
+    orderForm.reset();
+
+    window.scrollTo({
+      top: document.getElementById("order").offsetTop - 80,
+      behavior: "smooth"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    statusText.textContent =
+      "✕ 提交失敗：" + error.message;
+
+  } finally {
+
+    submitButton.disabled = false;
+    submitButton.textContent = "提交委託 ↗";
+
+  }
+
+});
+</script>
+
+</body>
+</html>
