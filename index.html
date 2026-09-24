@@ -403,39 +403,91 @@ async function loadServices() {
 
   console.log("服務資料：", data);
 
-  const videoServices = document.getElementById("videoServices");
 
-  if (!videoServices) {
-    return;
+  // =========================
+  // 短影音剪輯
+  // =========================
+
+  const videoServices =
+    document.getElementById("videoServices");
+
+  if (videoServices) {
+
+    const videoPackages = data.filter(
+      item => item.service === "短影音剪輯"
+    );
+
+    videoServices.innerHTML =
+      videoPackages.map((item, index) => {
+
+        return `
+          <div class="price ${index === 1 ? "hot" : ""}">
+
+            <small>
+              VIDEO / ${String(index + 1).padStart(2, "0")}
+            </small>
+
+            <h3>${item.package}</h3>
+
+            <div class="amount">
+              <i>HKD</i> $${item.price}
+            </div>
+
+            <button
+              data-service="${item.service}｜${item.package} HKD $${item.price}"
+            >
+              選擇套餐
+            </button>
+
+          </div>
+        `;
+
+      }).join("");
+
   }
 
-  const videoPackages = data.filter(
-    item => item.service === "短影音剪輯"
-  );
 
-  videoServices.innerHTML = videoPackages.map((item, index) => {
+  // =========================
+  // 編曲
+  // =========================
 
-    return `
-      <div class="price ${index === 1 ? "hot" : ""}">
+  const musicServices =
+    document.getElementById("musicServices");
 
-        <small>VIDEO / ${String(index + 1).padStart(2, "0")}</small>
+  if (musicServices) {
 
-        <h3>${item.package}</h3>
+    const musicPackages = data.filter(
+      item => item.service === "編曲"
+    );
 
-        <div class="amount">
-          <i>HKD</i> $${item.price}
-        </div>
+    musicServices.innerHTML =
+      musicPackages.map((item, index) => {
 
-        <button
-          data-service="${item.service}｜${item.package} HKD $${item.price}"
-        >
-          選擇套餐
-        </button>
+        return `
+          <div class="price ${index === 1 ? "hot" : ""}">
 
-      </div>
-    `;
+            <small>
+              MUSIC / ${String(index + 1).padStart(2, "0")}
+            </small>
 
-  }).join("");
+            <h3>${item.package}</h3>
+
+            <div class="amount">
+              <i>HKD</i> $${item.price}
+            </div>
+
+            <button
+              data-service="${item.service}｜${item.package} HKD $${item.price}"
+            >
+              選擇套餐
+            </button>
+
+          </div>
+        `;
+
+      }).join("");
+
+  }
 
 }
 
