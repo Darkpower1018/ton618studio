@@ -218,6 +218,23 @@
   background: rgba(255,255,255,0.06);
 }
 
+.order-tools select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #121016;
+  color: white;
+  padding: 13px 15px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+.order-tools select:focus {
+  border-color: rgba(164,103,255,0.6);
+}
+    
     .orders {
       display: grid;
       gap: 16px;
@@ -468,7 +485,6 @@
 
     </section>
     
-
 <div class="order-tools">
 
   <input
@@ -476,6 +492,14 @@
     id="orderSearch"
     placeholder="🔎 搜尋客戶名稱、聯絡方式、服務..."
   >
+
+  <select id="orderStatusFilter">
+    <option value="all">全部訂單</option>
+    <option value="pending">🟡 待處理</option>
+    <option value="in_progress">🔵 製作中</option>
+    <option value="completed">🟢 已完成</option>
+    <option value="cancelled">🔴 已取消</option>
+  </select>
 
 </div>
 
@@ -532,6 +556,9 @@
 
   const orderSearch =
   document.getElementById("orderSearch");
+
+  const orderStatusFilter =
+  document.getElementById("orderStatusFilter");
 
   const serviceList =
   document.getElementById("serviceList");
@@ -662,15 +689,13 @@
 
   }
 
-  orderSearch.addEventListener("input", () => {
+ function filterOrders() {
 
   const keyword =
     orderSearch.value.trim().toLowerCase();
 
-  if (!keyword) {
-    loadOrders();
-    return;
-  }
+  const status =
+    orderStatusFilter.value;
 
   const filteredOrders =
     allOrders.filter(order => {
@@ -687,7 +712,14 @@
         .join(" ")
         .toLowerCase();
 
-      return text.includes(keyword);
+      const matchesSearch =
+        !keyword || text.includes(keyword);
+
+      const matchesStatus =
+        status === "all" ||
+        order.status === status;
+
+      return matchesSearch && matchesStatus;
     });
 
   if (filteredOrders.length === 0) {
@@ -705,9 +737,18 @@
     filteredOrders
       .map(order => createOrderHTML(order))
       .join("");
+}
 
-});
 
+orderSearch.addEventListener(
+  "input",
+  filterOrders
+);
+
+orderStatusFilter.addEventListener(
+  "change",
+  filterOrders
+);
     async function loadServices() {
 
     serviceList.innerHTML = `
