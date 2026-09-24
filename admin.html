@@ -881,6 +881,60 @@ document.addEventListener("change", async (event) => {
 
 });
 
+document.addEventListener("click", async (event) => {
+
+  if (!event.target.classList.contains("save-price-btn")) {
+    return;
+  }
+
+  const button = event.target;
+  const serviceId = button.dataset.serviceId;
+
+  const input = document.querySelector(
+    `.service-price-input[data-service-id="${serviceId}"]`
+  );
+
+  if (!input) {
+    return;
+  }
+
+  const newPrice = Number(input.value);
+
+  if (!Number.isFinite(newPrice) || newPrice < 0) {
+    alert("請輸入有效的價格。");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "儲存中……";
+
+  const { error } = await supabaseClient
+    .from("services")
+    .update({
+      price: newPrice
+    })
+    .eq("id", serviceId);
+
+  if (error) {
+
+    console.error(error);
+
+    alert("價格更新失敗：" + error.message);
+
+    button.disabled = false;
+    button.textContent = "儲存";
+
+    return;
+  }
+
+  button.textContent = "✓ 已儲存";
+
+  setTimeout(() => {
+    button.disabled = false;
+    button.textContent = "儲存";
+  }, 1500);
+
+});
 
 // =========================
 // 檢查目前登入狀態
