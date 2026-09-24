@@ -649,10 +649,20 @@
             </span>
           </div>
 
-          <div>
-            HKD $
-            ${escapeHtml(String(service.price))}
-          </div>
+     <div class="service-price-edit">
+
+  <span>HKD $</span>
+
+  <input
+    type="number"
+    class="service-price-input"
+    data-service-id="${escapeAttribute(service.id)}"
+    value="${escapeAttribute(String(service.price))}"
+    min="0"
+    step="1"
+  >
+
+</div>
 
         </div>
       `)
