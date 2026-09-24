@@ -232,6 +232,25 @@
       white-space: nowrap;
     }
 
+    .status-select {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: #17151d;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  outline: none;
+}
+
+.status-select:focus {
+  border-color: rgba(160,120,240,0.7);
+}
+
+.status-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
     .info {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
