@@ -713,6 +713,14 @@
   儲存
 </button>
 
+<button
+  class="toggle-service-btn"
+  data-service-id="${escapeAttribute(service.id)}"
+  data-active="${service.active}"
+>
+  ${service.active ? "停用" : "啟用"}
+</button>
+
         </div>
       `)
       .join("");
@@ -994,6 +1002,43 @@ document.addEventListener("change", async (event) => {
     }, 1500);
 
   });
+
+  document.addEventListener("click", async (event) => {
+
+  if (!event.target.classList.contains("toggle-service-btn")) {
+    return;
+  }
+
+  const button = event.target;
+  const serviceId = button.dataset.serviceId;
+  const currentActive = button.dataset.active === "true";
+  const newActive = !currentActive;
+
+  button.disabled = true;
+  button.textContent = newActive ? "啟用中……" : "停用中……";
+
+  const { error } = await supabaseClient
+    .from("services")
+    .update({
+      active: newActive
+    })
+    .eq("id", serviceId);
+
+  if (error) {
+
+    console.error(error);
+
+    alert("更新服務狀態失敗：" + error.message);
+
+    button.disabled = false;
+    button.textContent = currentActive ? "停用" : "啟用";
+
+    return;
+  }
+
+  await loadServices();
+
+});
   
 document.addEventListener("click", async (event) => {
   if (!event.target.classList.contains("save-price-btn")) {
