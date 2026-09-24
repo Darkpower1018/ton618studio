@@ -588,6 +588,77 @@
 
   }
 
+    async function loadServices() {
+
+    serviceList.innerHTML = `
+      <div class="card empty">
+        載入服務中……
+      </div>
+    `;
+
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("services")
+      .select("*")
+      .order("id", {
+        ascending: true
+      });
+
+
+    if (error) {
+
+      console.error(error);
+
+      serviceList.innerHTML = `
+        <div class="card empty">
+          無法載入服務。<br><br>
+          ${escapeHtml(error.message)}
+        </div>
+      `;
+
+      return;
+    }
+
+
+    if (!data || data.length === 0) {
+
+      serviceList.innerHTML = `
+        <div class="card empty">
+          目前沒有服務。
+        </div>
+      `;
+
+      return;
+    }
+
+
+    serviceList.innerHTML = data
+      .map(service => `
+        <div class="service-item">
+
+          <div>
+            <strong>
+              ${escapeHtml(service.service)}
+            </strong>
+
+            <span>
+              ${escapeHtml(service.package)}
+            </span>
+          </div>
+
+          <div>
+            HKD $
+            ${escapeHtml(String(service.price))}
+          </div>
+
+        </div>
+      `)
+      .join("");
+
+  }
 
   // =========================
   // 訂單卡片
