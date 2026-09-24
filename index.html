@@ -388,7 +388,7 @@ const supabaseClient = window.supabase.createClient(
    網站功能
 ================================ */
 
-  async function loadServices() {
+async function loadServices() {
 
   const { data, error } = await supabaseClient
     .from("services")
@@ -402,10 +402,44 @@ const supabaseClient = window.supabase.createClient(
   }
 
   console.log("服務資料：", data);
+
+  const videoServices = document.getElementById("videoServices");
+
+  if (!videoServices) {
+    return;
+  }
+
+  const videoPackages = data.filter(
+    item => item.service === "短影音剪輯"
+  );
+
+  videoServices.innerHTML = videoPackages.map((item, index) => {
+
+    return `
+      <div class="price ${index === 1 ? "hot" : ""}">
+
+        <small>VIDEO / ${String(index + 1).padStart(2, "0")}</small>
+
+        <h3>${item.package}</h3>
+
+        <div class="amount">
+          <i>HKD</i> $${item.price}
+        </div>
+
+        <button
+          data-service="${item.service}｜${item.package} HKD $${item.price}"
+        >
+          選擇套餐
+        </button>
+
+      </div>
+    `;
+
+  }).join("");
+
 }
 
 loadServices();
-
 const serviceSelect = document.getElementById("service");
 const orderForm = document.getElementById("orderForm");
 const statusText = document.getElementById("status");
