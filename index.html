@@ -624,7 +624,7 @@ orderForm.addEventListener("submit", async event => {
     const details = formData.get("details")?.trim();
     const materials = formData.get("materials")?.trim() || "";
 
-    const packageInfo = getPackageInfo(service);
+  const packageInfo = await getPackageInfo(service);
 
     if (!packageInfo) {
       throw new Error("請先選擇有效的服務套餐。");
