@@ -530,6 +530,9 @@
   const orders =
     document.getElementById("orders");
 
+  const orderSearch =
+  document.getElementById("orderSearch");
+
   const serviceList =
   document.getElementById("serviceList");
 
@@ -624,6 +627,7 @@
         ascending: false
       });
 
+    allOrders = data || [];
 
     if (error) {
 
@@ -657,6 +661,52 @@
       .join("");
 
   }
+
+  orderSearch.addEventListener("input", () => {
+
+  const keyword =
+    orderSearch.value.trim().toLowerCase();
+
+  if (!keyword) {
+    loadOrders();
+    return;
+  }
+
+  const filteredOrders =
+    allOrders.filter(order => {
+
+      const text = [
+        order.customer_name,
+        order.contact_type,
+        order.contact,
+        order.service,
+        order.package,
+        order.details
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(keyword);
+    });
+
+  if (filteredOrders.length === 0) {
+
+    orders.innerHTML = `
+      <div class="card empty">
+        找不到符合的訂單。
+      </div>
+    `;
+
+    return;
+  }
+
+  orders.innerHTML =
+    filteredOrders
+      .map(order => createOrderHTML(order))
+      .join("");
+
+});
 
     async function loadServices() {
 
