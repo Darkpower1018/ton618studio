@@ -721,6 +721,13 @@
   ${service.active ? "停用" : "啟用"}
 </button>
 
+<button
+  class="delete-service-btn"
+  data-service-id="${escapeAttribute(service.id)}"
+>
+  刪除
+</button>
+
         </div>
       `)
       .join("");
@@ -1032,6 +1039,47 @@ document.addEventListener("change", async (event) => {
 
     button.disabled = false;
     button.textContent = currentActive ? "停用" : "啟用";
+
+    return;
+  }
+
+  await loadServices();
+
+});
+
+  document.addEventListener("click", async (event) => {
+
+  if (!event.target.classList.contains("delete-service-btn")) {
+    return;
+  }
+
+  const button = event.target;
+  const serviceId = button.dataset.serviceId;
+
+  const confirmed = confirm(
+    "確定要刪除這個套餐嗎？\n刪除後無法恢復。"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "刪除中……";
+
+  const { error } = await supabaseClient
+    .from("services")
+    .delete()
+    .eq("id", serviceId);
+
+  if (error) {
+
+    console.error(error);
+
+    alert("刪除服務失敗：" + error.message);
+
+    button.disabled = false;
+    button.textContent = "刪除";
 
     return;
   }
