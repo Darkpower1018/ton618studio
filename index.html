@@ -659,9 +659,13 @@ if (error) {
 
     /* 成功 */
 
-    statusText.textContent =
-      "✓ 委託已成功提交！我會查看你的需求並與你聯絡。";
-
+statusText.innerHTML = `
+  <div class="order-success">
+    <div class="success-icon">✓</div>
+    <h3>委託已成功提交</h3>
+    <p>感謝你的委託！我會查看你的需求，並透過你提供的聯絡方式與你聯絡。</p>
+  </div>
+`;
     orderForm.reset();
 
     window.scrollTo({
