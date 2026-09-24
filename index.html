@@ -328,14 +328,9 @@ footer{flex-direction:column;gap:12px}
 
       <label>
         服務
-        <select required name="service" id="service">
-          <option value="">選擇服務</option>
-          <option value="短影音剪輯｜一部 HKD $59">短影音剪輯｜一部 HKD $59</option>
-          <option value="短影音剪輯｜兩部 HKD $99">短影音剪輯｜兩部 HKD $99</option>
-          <option value="短影音剪輯｜三部 HKD $149">短影音剪輯｜三部 HKD $149</option>
-          <option value="編曲｜一首 HKD $199">編曲｜一首 HKD $199</option>
-          <option value="編曲｜兩首 HKD $379">編曲｜兩首 HKD $379</option>
-        </select>
+<select required name="service" id="service">
+  <option value="">選擇服務</option>
+</select>
       </label>
 
       <label>
@@ -500,6 +495,54 @@ async function loadServices() {
 }
 
 loadServices();
+  async function loadOrderServices() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("services")
+    .select("*")
+    .eq("active", true)
+    .order("id", {
+      ascending: true
+    });
+
+  if (error) {
+    console.error("載入下單服務失敗：", error);
+    return;
+  }
+
+  const serviceSelect =
+    document.getElementById("service");
+
+  if (!serviceSelect) {
+    return;
+  }
+
+  serviceSelect.innerHTML = `
+    <option value="">選擇服務</option>
+  `;
+
+  data.forEach(item => {
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      `${item.service}｜${item.package} HKD $${item.price}`;
+      `${item.service}｜${item.package} HKD $${item.price}`;
+
+    option.textContent =
+      `${item.service}｜${item.package} HKD $${item.price}`;
+
+    serviceSelect.appendChild(option);
+
+  });
+
+}
+
+loadOrderServices();
 const serviceSelect = document.getElementById("service");
 const orderForm = document.getElementById("orderForm");
 const statusText = document.getElementById("status");
