@@ -480,6 +480,10 @@ async function loadServices() {
               <i>HKD</i> $${item.price}
             </div>
 
+            <p class="service-description">
+  ${item.description || ""}
+</p>
+
             <button
               data-service="${item.service}｜${item.package} HKD $${item.price}"
             >
