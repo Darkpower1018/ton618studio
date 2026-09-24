@@ -647,6 +647,14 @@
             <span>
               ${escapeHtml(service.package)}
             </span>
+
+<textarea
+  class="service-description-input"
+  data-service-id="${escapeAttribute(service.id)}"
+  rows="2"
+  placeholder="服務描述"
+>${escapeHtml(service.description || "")}</textarea>
+            
           </div>
 
      <div class="service-price-edit">
