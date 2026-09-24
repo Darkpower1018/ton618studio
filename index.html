@@ -650,10 +650,11 @@ orderForm.addEventListener("submit", async event => {
       ]);
 
 
-    if (error) {
-      console.error("Supabase error:", error);
-      throw new Error("訂單提交失敗，請稍後再試。");
-    }
+if (error) {
+  console.error("Supabase error:", error);
+  alert("Supabase 錯誤：" + error.message);
+  throw new Error("訂單提交失敗，請稍後再試。");
+}
 
 
     /* 成功 */
