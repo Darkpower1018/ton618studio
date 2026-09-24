@@ -577,7 +577,7 @@
   // 訂單卡片
   // =========================
 
- function createOrderHTML(order) {
+function createOrderHTML(order) {
 
   const date =
     order.created_at
@@ -589,33 +589,9 @@
   return `
     <article class="order">
 
-     <select
-  class="status-select"
-  data-order-id="${escapeAttribute(order.id)}"
-  data-current-status="${escapeAttribute(currentStatus)}"
->
+      <div class="order-top">
 
-  <option value="pending"
-    ${currentStatus === "pending" ? "selected" : ""}>
-    🟡 待處理
-  </option>
-
-  <option value="in_progress"
-    ${currentStatus === "in_progress" ? "selected" : ""}>
-    🔵 製作中
-  </option>
-
-  <option value="completed"
-    ${currentStatus === "completed" ? "selected" : ""}>
-    🟢 已完成
-  </option>
-
-  <option value="cancelled"
-    ${currentStatus === "cancelled" ? "selected" : ""}>
-    🔴 已取消
-  </option>
-
-</select>
+        <div>
 
           <div class="service">
             ${escapeHtml(order.service || "")}
@@ -657,7 +633,6 @@
 
       </div>
 
-
       <div class="info">
 
         <div>
@@ -692,7 +667,6 @@
 
       </div>
 
-
       <div class="details">
 
         <strong>需求：</strong>
@@ -719,101 +693,7 @@
 
     </article>
   `;
-   
-
-    const date =
-      order.created_at
-        ? new Date(order.created_at).toLocaleString("zh-HK")
-        : "未知";
-
-
-    return `
-      <article class="order">
-
-        <div class="order-top">
-
-          <div>
-
-            <div class="service">
-              ${escapeHtml(order.service || "")}
-            </div>
-
-            <div class="date">
-              ${escapeHtml(date)}
-            </div>
-
-          </div>
-
-          <div class="status-badge">
-            ${escapeHtml(order.status || "pending")}
-          </div>
-
-        </div>
-
-
-        <div class="info">
-
-          <div>
-            客戶：
-            <strong>
-              ${escapeHtml(order.customer_name || "")}
-            </strong>
-          </div>
-
-          <div>
-            價格：
-            <strong>
-              HKD $${escapeHtml(String(order.price ?? ""))}
-            </strong>
-          </div>
-
-          <div>
-            套餐：
-            <strong>
-              ${escapeHtml(order.package || "")}
-            </strong>
-          </div>
-
-          <div>
-            聯絡方式：
-            <strong>
-              ${escapeHtml(order.contact_type || "")}
-              /
-              ${escapeHtml(order.contact || "")}
-            </strong>
-          </div>
-
-        </div>
-
-
-        <div class="details">
-
-          <strong>需求：</strong>
-
-          ${escapeHtml(order.details || "")}
-
-          ${
-            order.google_drive
-              ? `
-                <br>
-                <a
-                  class="drive"
-                  href="${escapeAttribute(order.google_drive)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ↗ 開啟 Google Drive 素材
-                </a>
-              `
-              : ""
-          }
-
-        </div>
-
-      </article>
-    `;
-
-  }
+}
 
 
   // =========================
@@ -841,11 +721,7 @@
   // 重新整理
   // =========================
 
-  refreshBtn.addEventListener("click", () => {
 
-    loadOrders();
-
-  });
 
   refreshBtn.addEventListener("click", () => {
 
