@@ -399,6 +399,40 @@
 
       <h2>服務管理</h2>
 
+          <div class="add-service">
+
+  <input
+    type="text"
+    id="newServiceName"
+    placeholder="服務名稱，例如：短影音剪輯"
+  >
+
+  <input
+    type="text"
+    id="newPackageName"
+    placeholder="套餐名稱，例如：四部"
+  >
+
+  <input
+    type="number"
+    id="newServicePrice"
+    placeholder="價格"
+    min="0"
+    step="1"
+  >
+
+  <textarea
+    id="newServiceDescription"
+    placeholder="服務描述"
+    rows="2"
+  ></textarea>
+
+  <button id="addServiceBtn">
+    ＋ 新增服務
+  </button>
+
+</div>
+
       <div class="service-list" id="serviceList">
 
         <div class="card empty">
@@ -889,8 +923,79 @@ document.addEventListener("change", async (event) => {
 
 });
 
-document.addEventListener("click", async (event) => {
 
+  document
+  .getElementById("addServiceBtn")
+  .addEventListener("click", async () => {
+
+    const serviceName =
+      document.getElementById("newServiceName").value.trim();
+
+    const packageName =
+      document.getElementById("newPackageName").value.trim();
+
+    const price =
+      Number(document.getElementById("newServicePrice").value);
+
+    const description =
+      document.getElementById("newServiceDescription").value.trim();
+
+    if (!serviceName || !packageName) {
+      alert("請填寫服務名稱和套餐名稱。");
+      return;
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      alert("請輸入有效的價格。");
+      return;
+    }
+
+    const button =
+      document.getElementById("addServiceBtn");
+
+    button.disabled = true;
+    button.textContent = "新增中……";
+
+    const { error } =
+      await supabaseClient
+        .from("services")
+        .insert({
+          service: serviceName,
+          package: packageName,
+          price: price,
+          description: description,
+          active: true
+        });
+
+    if (error) {
+
+      console.error(error);
+
+      alert("新增服務失敗：" + error.message);
+
+      button.disabled = false;
+      button.textContent = "＋ 新增服務";
+
+      return;
+    }
+
+    document.getElementById("newServiceName").value = "";
+    document.getElementById("newPackageName").value = "";
+    document.getElementById("newServicePrice").value = "";
+    document.getElementById("newServiceDescription").value = "";
+
+    button.textContent = "✓ 已新增";
+
+    await loadServices();
+
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = "＋ 新增服務";
+    }, 1500);
+
+  });
+  
+document.addEventListener("click", async (event) => {
   if (!event.target.classList.contains("save-price-btn")) {
     return;
   }
