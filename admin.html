@@ -902,6 +902,10 @@ document.addEventListener("click", async (event) => {
     `.service-price-input[data-service-id="${serviceId}"]`
   );
 
+  const descriptionInput = document.querySelector(
+  `.service-description-input[data-service-id="${serviceId}"]`
+);
+
   if (!input) {
     return;
   }
@@ -919,7 +923,10 @@ document.addEventListener("click", async (event) => {
   const { error } = await supabaseClient
     .from("services")
     .update({
-      price: newPrice
+     price: newPrice,
+    description: descriptionInput
+  ? descriptionInput.value.trim()
+  : ""
     })
     .eq("id", serviceId);
 
