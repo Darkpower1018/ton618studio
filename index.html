@@ -572,40 +572,34 @@ document.querySelectorAll("[data-service]").forEach(button => {
    從套餐名稱取得價格與套餐
 ================================ */
 
-function getPackageInfo(service) {
+async function getPackageInfo(service) {
 
-  const packages = {
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("services")
+    .select("service, package, price, active")
+    .eq("active", true);
 
-    "短影音剪輯｜一部 HKD $59": {
-      package: "一部",
-      price: 59
-    },
+  if (error) {
+    console.error("取得服務資料失敗：", error);
+    return null;
+  }
 
-    "短影音剪輯｜兩部 HKD $99": {
-      package: "兩部",
-      price: 99
-    },
+  const selectedService = data.find(item => {
+    return `${item.service}｜${item.package} HKD $${item.price}` === service;
+  });
 
-    "短影音剪輯｜三部 HKD $149": {
-      package: "三部",
-      price: 149
-    },
+  if (!selectedService) {
+    return null;
+  }
 
-    "編曲｜一首 HKD $199": {
-      package: "一首",
-      price: 199
-    },
-
-    "編曲｜兩首 HKD $379": {
-      package: "兩首",
-      price: 379
-    }
-
+  return {
+    package: selectedService.package,
+    price: selectedService.price
   };
-
-  return packages[service] || null;
 }
-
 
 /* ================================
    提交訂單
