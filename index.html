@@ -388,6 +388,24 @@ const supabaseClient = window.supabase.createClient(
    網站功能
 ================================ */
 
+  async function loadServices() {
+
+  const { data, error } = await supabaseClient
+    .from("services")
+    .select("*")
+    .eq("active", true)
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("載入服務失敗：", error);
+    return;
+  }
+
+  console.log("服務資料：", data);
+}
+
+loadServices();
+
 const serviceSelect = document.getElementById("service");
 const orderForm = document.getElementById("orderForm");
 const statusText = document.getElementById("status");
