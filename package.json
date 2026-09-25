@@ -1,0 +1,7 @@
+{
+  "name": "ton618studio",
+  "private": true,
+  "dependencies": {
+    "stripe": "22.6.2"
+  }
+}
