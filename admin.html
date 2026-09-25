@@ -322,6 +322,16 @@
       word-break: break-all;
     }
 
+    .material-btn {
+      margin-top: 12px;
+      border: 1px solid rgba(164,103,255,0.35);
+      background: rgba(164,103,255,0.08);
+      color: #b69aff;
+      padding: 8px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
     .empty {
       text-align: center;
       padding: 50px 20px;
@@ -887,7 +897,7 @@ function createOrderHTML(order) {
           </div>
 
           <div class="date">
-            ${escapeHtml(date)}
+            ${escapeHtml(order.order_number || "未有訂單編號")} · ${escapeHtml(date)}
           </div>
 
         </div>
@@ -934,7 +944,14 @@ function createOrderHTML(order) {
         <div>
           價格：
           <strong>
-            HKD $${escapeHtml(String(order.price ?? ""))}
+            HKD ${escapeHtml(String(order.price ?? ""))}
+          </strong>
+        </div>
+
+        <div>
+          付款：
+          <strong>
+            ${order.payment_status === "paid" ? "✓ 已付款" : "尚未付款"}
           </strong>
         </div>
 
@@ -980,6 +997,20 @@ function createOrderHTML(order) {
 
       </div>
 
+        ${
+          order.material_path
+            ? `
+              <br>
+              <button
+                type="button"
+                class="material-btn"
+                data-material-path="${escapeAttribute(order.material_path)}"
+              >
+                ↗ 開啟已上傳素材
+              </button>
+            `
+            : ""
+        }
     </article>
   `;
 }
@@ -1323,6 +1354,42 @@ async function checkSession() {
 
   }
 
+
+document.addEventListener("click", async event => {
+
+  const button = event.target.closest(".material-btn");
+
+  if (!button) return;
+
+  const path = button.dataset.materialPath;
+
+  if (!path) return;
+
+  button.disabled = true;
+  button.textContent = "建立素材連結……";
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .storage
+    .from("materials")
+    .createSignedUrl(path, 3600);
+
+  if (error) {
+    console.error(error);
+    alert("無法開啟素材：" + error.message);
+    button.disabled = false;
+    button.textContent = "↗ 開啟已上傳素材";
+    return;
+  }
+
+  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+
+  button.disabled = false;
+  button.textContent = "↗ 開啟已上傳素材";
+
+});
 
   checkSession();
   loadServices();

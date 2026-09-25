@@ -87,6 +87,8 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:1/-1}
 .form input,.form select,.form textarea{background:#050407;border:1px solid #ffffff16;color:#eee;padding:13px;border-radius:3px;outline:0}
 .form textarea{min-height:130px}
+.form input[type="file"]{padding:10px;color:#aaa}
+.upload-note{grid-column:1/-1;font-size:10px;color:#706879;margin-top:-8px}
 .form button{border:0;padding:15px;background:#f5f0fb;color:#09070d;font-weight:800;cursor:pointer}
 .form button:disabled{opacity:.55;cursor:wait}
 .status{font-size:11px;color:#a779d2;min-height:18px}
@@ -116,11 +118,23 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 }
 
 .order-success p{
-  margin:0;
+  margin:0 0 8px;
   color:#817789;
   font-size:12px;
   line-height:1.8;
 }
+.order-success strong{color:#eee}
+.pay-order-btn{
+  margin-top:14px;
+  padding:12px 18px;
+  border:0;
+  border-radius:4px;
+  background:#f5f0fb;
+  color:#09070d;
+  font-weight:800;
+  cursor:pointer;
+}
+.pay-order-btn:disabled{opacity:.55;cursor:wait}
 footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-content:space-between;color:#5f5767;font:10px monospace}
 
 @keyframes rotate{to{transform:rotate(343deg)}}
@@ -176,6 +190,7 @@ footer{flex-direction:column;gap:12px}
     <a href="#editing">剪輯</a>
     <a href="#music">編曲</a>
     <a href="#order">下單</a>
+    <a href="#lookup">查詢訂單</a>
   </nav>
 </header>
 
@@ -371,8 +386,17 @@ footer{flex-direction:column;gap:12px}
 
       <label>
         素材連結
-        <input name="materials" id="materials" placeholder="貼上 Google Drive 素材連結">
+        <input name="materials" id="materials" placeholder="可選：貼上 Google Drive 素材連結">
       </label>
+
+      <label>
+        或直接上傳素材
+        <input type="file" id="materialFile">
+      </label>
+
+      <div class="upload-note">
+        可不上傳。直接上傳時，檔案會存到私人素材空間，管理員登入後才能查看。
+      </div>
 
       <button type="submit" id="submitBtn">
         提交委託 ↗
@@ -382,6 +406,48 @@ footer{flex-direction:column;gap:12px}
 
     </form>
   </div>
+</section>
+
+
+<section id="lookup" class="section">
+  <div class="section-title">
+    <div>
+      <div class="eyebrow">05 / ORDER STATUS</div>
+      <h2>查詢訂單</h2>
+    </div>
+    <div class="muted">
+      輸入訂單編號與你下單時使用的帳號。<br>
+      可查看進度與付款狀態。
+    </div>
+  </div>
+
+  <div class="orderbox">
+    <div class="intro">
+      <div class="eyebrow">ORDER LOOKUP</div>
+      <h2>查看你的<br>委託。</h2>
+      <p class="muted">
+        訂單編號會在提交委託後顯示。<br>
+        聯絡方式請填寫下單時的帳號。
+      </p>
+    </div>
+
+    <form class="form" id="lookupForm">
+      <label>
+        訂單編號
+        <input required id="lookupOrderNumber" placeholder="例如 TON-20260925-0001">
+      </label>
+
+      <label>
+        聯絡帳號
+        <input required id="lookupContact" placeholder="例如 agc_ton618">
+      </label>
+
+      <button type="submit" id="lookupBtn">查詢訂單 ↗</button>
+      <div class="status" id="lookupStatus"></div>
+    </form>
+  </div>
+
+  <div id="lookupResult" style="margin-top:18px;"></div>
 </section>
 
 </main>
@@ -582,19 +648,19 @@ const submitButton = document.getElementById("submitBtn");
 
 /* 點擊價格套餐 → 自動選擇服務並滑到下單區 */
 
-document.querySelectorAll("[data-service]").forEach(button => {
+document.addEventListener("click", event => {
 
-  button.addEventListener("click", () => {
+  const button = event.target.closest("[data-service]");
 
-    serviceSelect.value = button.dataset.service;
+  if (!button) return;
 
-    document
-      .getElementById("order")
-      .scrollIntoView({
-        behavior: "smooth"
-      });
+  serviceSelect.value = button.dataset.service;
 
-  });
+  document
+    .getElementById("order")
+    .scrollIntoView({
+      behavior: "smooth"
+    });
 
 });
 
@@ -662,41 +728,78 @@ orderForm.addEventListener("submit", async event => {
     }
 
 
-    /* 寫入 Supabase orders */
+    let materialPath = "";
 
-    const { error } = await supabaseClient
-      .from("orders")
-      .insert([
-        {
-          service: service,
-          package: packageInfo.package,
-          price: packageInfo.price,
-          customer_name: name,
-          contact_type: contactType,
-          contact: contact,
-          details: details,
-          google_drive: materials,
-          status: "pending"
-        }
-      ]);
+    const materialFile =
+      document.getElementById("materialFile")?.files?.[0];
 
+    if (materialFile) {
 
-if (error) {
-  console.error("Supabase error:", error);
-  alert("Supabase 錯誤：" + error.message);
-  throw new Error("訂單提交失敗，請稍後再試。");
-}
+      const maxSize = 500 * 1024 * 1024;
 
+      if (materialFile.size > maxSize) {
+        throw new Error("素材檔案不能超過 500 MB。");
+      }
 
-    /* 成功 */
+      const safeName =
+        materialFile.name
+          .replace(/[^a-zA-Z0-9._-]/g, "_")
+          .slice(-120);
 
-statusText.innerHTML = `
-  <div class="order-success">
-    <div class="success-icon">✓</div>
-    <h3>委託已成功提交</h3>
-    <p>感謝你的委託！我會查看你的需求，並透過你提供的聯絡方式與你聯絡。</p>
-  </div>
-`;
+      materialPath =
+        `incoming/${crypto.randomUUID()}/${safeName}`;
+
+      const {
+        error: uploadError
+      } = await supabaseClient
+        .storage
+        .from("materials")
+        .upload(materialPath, materialFile, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: materialFile.type || "application/octet-stream"
+        });
+
+      if (uploadError) {
+        console.error(uploadError);
+        throw new Error("素材上傳失敗：" + uploadError.message);
+      }
+    }
+
+    const response = await fetch("/api/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name,
+        contactType,
+        contact,
+        service,
+        details,
+        materials,
+        materialPath
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "訂單提交失敗。");
+    }
+
+    statusText.innerHTML = `
+      <div class="order-success">
+        <div class="success-icon">✓</div>
+        <h3>委託已成功提交</h3>
+        <p>你的訂單編號是 <strong>${result.order_number}</strong></p>
+        <p>請保存訂單編號，之後可以用它查詢進度。</p>
+        <button type="button" class="pay-order-btn" data-order-number="${result.order_number}">
+          立即付款 HKD ${result.price}
+        </button>
+      </div>
+    `;
+
     orderForm.reset();
 
     window.scrollTo({
@@ -719,6 +822,161 @@ statusText.innerHTML = `
   }
 
 });
+
+
+async function startPayment(orderNumber, button) {
+
+  button.disabled = true;
+  button.textContent = "建立付款頁面……";
+
+  try {
+
+    const response = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        order_number: orderNumber
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "付款頁面建立失敗。");
+    }
+
+    window.location.href = result.url;
+
+  } catch (error) {
+
+    console.error(error);
+    alert(error.message);
+    button.disabled = false;
+    button.textContent = "立即付款";
+
+  }
+
+}
+
+document.addEventListener("click", event => {
+
+  const button = event.target.closest(".pay-order-btn");
+
+  if (!button) return;
+
+  startPayment(button.dataset.orderNumber, button);
+
+});
+
+const lookupForm = document.getElementById("lookupForm");
+const lookupStatus = document.getElementById("lookupStatus");
+const lookupResult = document.getElementById("lookupResult");
+const lookupBtn = document.getElementById("lookupBtn");
+
+lookupForm.addEventListener("submit", async event => {
+
+  event.preventDefault();
+
+  lookupBtn.disabled = true;
+  lookupBtn.textContent = "查詢中……";
+  lookupStatus.textContent = "";
+  lookupResult.innerHTML = "";
+
+  try {
+
+    const orderNumber =
+      document.getElementById("lookupOrderNumber").value.trim();
+
+    const contact =
+      document.getElementById("lookupContact").value.trim();
+
+    const { data, error } =
+      await supabaseClient.rpc("lookup_order", {
+        p_order_number: orderNumber,
+        p_contact: contact
+      });
+
+    if (error) throw error;
+
+    const order = data?.[0];
+
+    if (!order) {
+      lookupStatus.textContent =
+        "找不到訂單，請確認訂單編號與聯絡帳號。";
+      return;
+    }
+
+    const statusMap = {
+      pending: "🟡 待處理",
+      in_progress: "🔵 製作中",
+      completed: "🟢 已完成",
+      cancelled: "🔴 已取消"
+    };
+
+    const paymentMap = {
+      unpaid: "尚未付款",
+      paid: "✓ 已付款"
+    };
+
+    lookupResult.innerHTML = `
+      <article class="card">
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div class="eyebrow">ORDER</div>
+            <h3 style="font-size:24px;margin:8px 0;">${escapeHtml(order.order_number)}</h3>
+          </div>
+          <div style="font-size:13px;">
+            ${statusMap[order.status] || order.status || "未知狀態"}<br>
+            ${paymentMap[order.payment_status] || "付款狀態未知"}
+          </div>
+        </div>
+
+        <div class="muted" style="margin-top:18px;line-height:2;">
+          服務：${escapeHtml(order.service)}<br>
+          套餐：${escapeHtml(order.package)}<br>
+          價格：HKD ${escapeHtml(String(order.price))}<br>
+          需求：${escapeHtml(order.details)}
+        </div>
+
+        ${order.payment_status !== "paid" && order.status !== "cancelled"
+          ? `<button type="button" class="pay-order-btn" data-order-number="${escapeAttribute(order.order_number)}">前往付款 HKD ${escapeHtml(String(order.price))}</button>`
+          : ""
+        }
+      </article>
+    `;
+
+  } catch (error) {
+
+    console.error(error);
+    lookupStatus.textContent =
+      "查詢失敗，請稍後再試。";
+
+  } finally {
+
+    lookupBtn.disabled = false;
+    lookupBtn.textContent = "查詢訂單 ↗";
+
+  }
+
+});
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
 </script>
 
 </body>
