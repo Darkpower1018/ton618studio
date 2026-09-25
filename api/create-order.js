@@ -32,8 +32,7 @@ export default async function handler(req, res) {
 
     const headers = {
       "Content-Type": "application/json",
-      "apikey": SUPABASE_SERVICE_ROLE_KEY,
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      "apikey": SUPABASE_SERVICE_ROLE_KEY
     };
 
     const servicesResponse = await fetch(
