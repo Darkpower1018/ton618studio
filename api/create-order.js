@@ -41,7 +41,9 @@ export default async function handler(req, res) {
     );
 
     if (!servicesResponse.ok) {
-      throw new Error("無法取得服務資料。");
+      const errorText = await servicesResponse.text();
+      console.error("Supabase services request failed:", servicesResponse.status, errorText);
+      throw new Error(`無法取得服務資料。 Supabase HTTP ${servicesResponse.status}: ${errorText || "no response body"}`);
     }
 
     const services = await servicesResponse.json();
