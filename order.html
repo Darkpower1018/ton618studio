@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>能量工作室｜查詢訂單</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#030206;color:#f5f1fb;font-family:Arial,"Noto Sans TC",sans-serif;min-height:100vh}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 70% 10%,rgba(104,40,210,.2),transparent 35%),#030206}
+.container{width:min(760px,calc(100% - 32px));margin:auto}
+header{padding:26px 0;border-bottom:1px solid #ffffff12}
+.logo{font-weight:800;letter-spacing:.14em}
+main{padding:70px 0}
+.card{border:1px solid #ffffff12;background:linear-gradient(145deg,#0b0812,#07060a);padding:34px;border-radius:4px}
+.eyebrow{font:10px monospace;letter-spacing:.25em;color:#a67ce1}
+h1{font-size:44px;margin:12px 0}
+h2{font-size:24px;margin:0 0 18px}
+p{color:#817789;line-height:1.9}
+form{display:grid;gap:16px}
+label{font:10px monospace;color:#817789;display:grid;gap:7px}
+input{background:#050407;border:1px solid #ffffff16;color:#eee;padding:13px;border-radius:3px;outline:0}
+button{border:0;padding:14px;background:#f5f0fb;color:#09070d;font-weight:800;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.status{min-height:20px;color:#a779d2;font-size:12px}
+.result{margin-top:18px}
+.row{padding:11px 0;border-bottom:1px solid #ffffff0d;color:#aaa2b4;line-height:1.7}
+.row strong{color:#eee}
+.pay{margin-top:18px}
+a{color:#b69aff}
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <div class="logo">能量工作室</div>
+  </div>
+</header>
+<main class="container">
+  <div class="card">
+    <div class="eyebrow">ORDER STATUS</div>
+    <h1>查詢訂單</h1>
+    <p>輸入訂單編號，以及你下單時使用的聯絡帳號。</p>
+
+    <form id="lookupForm">
+      <label>訂單編號
+        <input id="orderNumber" required placeholder="例如 TON-20260925-0001">
+      </label>
+      <label>聯絡帳號
+        <input id="contact" required placeholder="例如 agc_ton618">
+      </label>
+      <button id="lookupBtn">查詢 ↗</button>
+      <div class="status" id="status"></div>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://qtceqmnbeobsndpwnisf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_RzkPac46JOSRgGi2k34Jug_ddHxE-Nh";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+const form=document.getElementById("lookupForm");
+const btn=document.getElementById("lookupBtn");
+const status=document.getElementById("status");
+const result=document.getElementById("result");
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttribute(value){return escapeHtml(value)}
+
+async function pay(orderNumber, button){
+  button.disabled=true;
+  button.textContent="建立付款頁面……";
+  try{
+    const response=await fetch("/api/create-checkout-session",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({order_number:orderNumber})
+    });
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.error||"付款頁面建立失敗。");
+    window.location.href=data.url;
+  }catch(error){
+    alert(error.message);
+    button.disabled=false;
+    button.textContent="前往付款";
+  }
+}
+
+document.addEventListener("click",event=>{
+  const button=event.target.closest(".pay-button");
+  if(!button)return;
+  pay(button.dataset.orderNumber,button);
+});
+
+async function lookup(){
+  const orderNumber=document.getElementById("orderNumber").value.trim();
+  const contact=document.getElementById("contact").value.trim();
+
+  status.textContent="查詢中……";
+  result.innerHTML="";
+  btn.disabled=true;
+
+  try{
+    const {data,error}=await supabaseClient.rpc("lookup_order",{
+      p_order_number:orderNumber,
+      p_contact:contact
+    });
+
+    if(error)throw error;
+
+    const order=data?.[0];
+
+    if(!order){
+      status.textContent="找不到訂單，請確認資料是否正確。";
+      return;
+    }
+
+    status.textContent="";
+
+    const statusText={
+      pending:"🟡 待處理",
+      in_progress:"🔵 製作中",
+      completed:"🟢 已完成",
+      cancelled:"🔴 已取消"
+    }[order.status]||order.status;
+
+    const paymentText=order.payment_status==="paid"?"✓ 已付款":"尚未付款";
+
+    result.innerHTML=`
+      <div class="card">
+        <div class="eyebrow">${escapeHtml(order.order_number)}</div>
+        <h2>${escapeHtml(order.service)}｜${escapeHtml(order.package)}</h2>
+        <div class="row">狀態：<strong>${escapeHtml(statusText)}</strong></div>
+        <div class="row">付款：<strong>${escapeHtml(paymentText)}</strong></div>
+        <div class="row">價格：<strong>HKD $${escapeHtml(String(order.price))}</strong></div>
+        <div class="row">需求：<strong>${escapeHtml(order.details)}</strong></div>
+        ${order.payment_status!=="paid" && order.status!=="cancelled"
+          ? `<button class="pay pay-button" data-order-number="${escapeAttribute(order.order_number)}">前往付款 HKD $${escapeHtml(String(order.price))}</button>`
+          : ""}
+      </div>
+    `;
+  }catch(error){
+    console.error(error);
+    status.textContent="查詢失敗，請稍後再試。";
+  }finally{
+    btn.disabled=false;
+    btn.textContent="查詢 ↗";
+  }
+}
+
+form.addEventListener("submit",event=>{
+  event.preventDefault();
+  lookup();
+});
+
+const params=new URLSearchParams(location.search);
+if(params.get("order")){
+  document.getElementById("orderNumber").value=params.get("order");
+}
+if(params.get("paid")==="1"){
+  status.textContent="付款頁面已完成操作；付款狀態以 Stripe webhook 更新結果為準。";
+}
+</script>
+</body>
+</html>
