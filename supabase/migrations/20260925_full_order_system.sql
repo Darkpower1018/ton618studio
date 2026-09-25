@@ -2,6 +2,11 @@
 
 create sequence if not exists public.order_number_seq;
 
+-- 訂單改由 serverless API 建立，避免訪客直接寫入資料庫。
+drop policy if exists "Allow public order inserts" on public.orders;
+drop policy if exists "Allow public order Inserts" on public.orders;
+drop policy if exists "Allow public order Inserts authenticated" on public.orders;
+
 alter table public.orders
   add column if not exists order_number text,
   add column if not exists material_path text,
