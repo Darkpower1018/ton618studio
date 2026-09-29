@@ -16,6 +16,7 @@ main{padding:70px 0}
 .eyebrow{font:10px monospace;letter-spacing:.25em;color:#a67ce1}
 h1{font-size:44px;margin:12px 0}
 h2{font-size:24px;margin:0 0 18px}
+h3{font-size:14px;margin:0 0 14px;letter-spacing:.08em}
 p{color:#817789;line-height:1.9}
 form{display:grid;gap:16px}
 label{font:10px monospace;color:#817789;display:grid;gap:7px}
@@ -27,6 +28,18 @@ button:disabled{opacity:.55;cursor:wait}
 .row{padding:11px 0;border-bottom:1px solid #ffffff0d;color:#aaa2b4;line-height:1.7}
 .row strong{color:#eee}
 .pay{margin-top:18px}
+.payment-box{margin-top:22px;padding-top:22px;border-top:1px solid #ffffff12}
+.payment-method{margin:12px 0;padding:18px;border:1px solid #ffffff10;background:#050407;border-radius:4px}
+.payment-method h3{color:#cfc7d8}
+.paypal-buttons{min-height:44px}
+.wallet-button{margin-top:10px}
+.card-fields{display:grid;gap:10px}
+.card-field{min-height:46px;background:#fff;border-radius:4px;padding:6px}
+.card-submit{width:100%;margin-top:12px}
+.small{font-size:11px;color:#6f6678}
+.hidden{display:none}
+.success{color:#86d8aa}
+.error{color:#ff8f9b}
 a{color:#b69aff}
 </style>
 </head>
@@ -68,6 +81,10 @@ const btn=document.getElementById("lookupBtn");
 const status=document.getElementById("status");
 const result=document.getElementById("result");
 
+let activeOrder=null;
+let paypalReady=false;
+let paymentSdkPromise=null;
+
 function escapeHtml(value){
   return String(value)
     .replaceAll("&","&amp;")
@@ -76,32 +93,332 @@ function escapeHtml(value){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function escapeAttribute(value){return escapeHtml(value)}
+function setStatus(message,type=""){
+  status.className="status "+type;
+  status.textContent=message;
+}
 
-async function pay(orderNumber, button){
-  button.disabled=true;
-  button.textContent="建立付款頁面……";
-  try{
-    const response=await fetch("/api/create-checkout-session",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({order_number:orderNumber})
+async function createPayPalOrder(paymentSource=null){
+  if(!activeOrder?.order_number) throw new Error("缺少訂單編號。");
+
+  const response=await fetch("/api/create-checkout-session",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      order_number:activeOrder.order_number,
+      ...(paymentSource ? {payment_source:paymentSource} : {})
+    })
+  });
+
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"無法建立付款訂單。");
+  return data;
+}
+
+async function capturePayPalOrder(paypalOrderId){
+  const response=await fetch("/api/capture-paypal-order",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      order_number:activeOrder.order_number,
+      paypal_order_id:paypalOrderId
+    })
+  });
+
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"付款確認失敗。");
+  return data;
+}
+
+async function loadPayPalSdk(){
+  if(paymentSdkPromise) return paymentSdkPromise;
+
+  paymentSdkPromise=(async()=>{
+    const tokenResponse=await fetch("/api/paypal-client-token");
+    const tokenData=await tokenResponse.json();
+    if(!tokenResponse.ok) throw new Error(tokenData.error||"無法初始化付款元件。");
+
+    await new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      const params=new URLSearchParams({
+        "client-id":tokenData.client_id,
+        "currency":"HKD",
+        "intent":"capture",
+        "components":"buttons,card-fields,applepay,googlepay,funding-eligibility"
+      });
+      script.src="https://www.paypal.com/sdk/js?"+params.toString();
+      script.dataset.clientToken=tokenData.client_token;
+      script.onload=resolve;
+      script.onerror=()=>reject(new Error("PayPal SDK 載入失敗。"));
+      document.head.appendChild(script);
     });
-    const data=await response.json();
-    if(!response.ok) throw new Error(data.error||"付款頁面建立失敗。");
-    window.location.href=data.url;
+
+    paypalReady=true;
+    return tokenData;
+  })();
+
+  return paymentSdkPromise;
+}
+
+async function setupPaymentMethods(){
+  if(!activeOrder || activeOrder.payment_status==="paid" || activeOrder.status==="cancelled") return;
+
+  const box=document.getElementById("paymentBox");
+  const loading=document.getElementById("paymentLoading");
+  try{
+    await loadPayPalSdk();
+    loading.textContent="";
+
+    paypal.Buttons({
+      style:{
+        layout:"vertical",
+        shape:"rect",
+        label:"paypal",
+        height:48
+      },
+      createOrder:async()=>{
+        const data=await createPayPalOrder();
+        return data.paypal_order_id;
+      },
+      onApprove:async(data)=>{
+        setStatus("正在確認付款……");
+        try{
+          await capturePayPalOrder(data.orderID);
+          setStatus("✓ 付款已完成，訂單狀態已更新。","success");
+          document.getElementById("paymentBox").innerHTML="<h3>付款完成</h3><p class='success'>✓ 已收到付款，你的訂單已進入處理流程。</p>";
+        }catch(error){
+          setStatus(error.message,"error");
+        }
+      },
+      onCancel:()=>setStatus("付款已取消，你可以重新選擇付款方式。"),
+      onError:(error)=>{
+        console.error(error);
+        setStatus("PayPal 付款失敗，請改用其他付款方式再試。","error");
+      }
+    }).render("#paypalButtons");
+
+    const cardFields=paypal.CardFields({
+      createOrder:async()=>{
+        const data=await createPayPalOrder();
+        return data.paypal_order_id;
+      },
+      onApprove:async(data)=>{
+        setStatus("正在確認信用卡付款……");
+        try{
+          await capturePayPalOrder(data.orderID);
+          setStatus("✓ 信用卡付款已完成，訂單狀態已更新。","success");
+          document.getElementById("paymentBox").innerHTML="<h3>付款完成</h3><p class='success'>✓ 已收到付款，你的訂單已進入處理流程。</p>";
+        }catch(error){
+          setStatus(error.message,"error");
+        }
+      },
+      onError:(error)=>{
+        console.error(error);
+        setStatus("信用卡付款失敗，請檢查卡片資料後再試。","error");
+      },
+      style:{
+        input:{
+          "font-size":"16px",
+          "font-family":"Arial, Noto Sans TC, sans-serif",
+          color:"#17131c"
+        },
+        ".invalid":{color:"#b00020"}
+      }
+    });
+
+    if(cardFields.isEligible()){
+      document.getElementById("cardMethod").classList.remove("hidden");
+      cardFields.NameField().render("#cardName");
+      cardFields.NumberField().render("#cardNumber");
+      cardFields.ExpiryField().render("#cardExpiry");
+      cardFields.CVVField().render("#cardCvv");
+
+      document.getElementById("cardSubmit").addEventListener("click",async()=>{
+        const button=document.getElementById("cardSubmit");
+        button.disabled=true;
+        button.textContent="處理中……";
+        try{
+          await cardFields.submit();
+        }catch(error){
+          console.error(error);
+          setStatus(error?.message||"信用卡付款失敗，請檢查卡片資料。","error");
+        }finally{
+          button.disabled=false;
+          button.textContent="使用信用卡付款";
+        }
+      });
+    }
+
+    await setupGooglePay();
+    await setupApplePay();
   }catch(error){
-    alert(error.message);
-    button.disabled=false;
-    button.textContent="前往付款";
+    console.error(error);
+    loading.textContent="付款元件暫時無法載入，請稍後再試。";
+    setStatus(error.message,"error");
   }
 }
 
-document.addEventListener("click",event=>{
-  const button=event.target.closest(".pay-button");
-  if(!button)return;
-  pay(button.dataset.orderNumber,button);
-});
+async function setupGooglePay(){
+  const container=document.getElementById("googlePayMethod");
+  if(!window.google?.payments?.api || !window.paypal?.Googlepay) return;
+
+  try{
+    const googlepay=paypal.Googlepay();
+    const config=await googlepay.config();
+
+    const paymentsClient=new google.payments.api.PaymentsClient({
+      environment:"PRODUCTION",
+      paymentDataCallbacks:{
+        onPaymentAuthorized:async(paymentData)=>{
+          try{
+            const data=await createPayPalOrder({
+              google_pay:{
+                attributes:{
+                  verification:{method:"SCA_WHEN_REQUIRED"}
+                }
+              }
+            });
+
+            const confirm=await googlepay.confirmOrder({
+              orderId:data.paypal_order_id,
+              paymentMethodData:paymentData.paymentMethodData
+            });
+
+            if(confirm.status!=="APPROVED"){
+              return {transactionState:"ERROR",error:{message:"Google Pay 付款未獲批准。"}};
+            }
+
+            await capturePayPalOrder(data.paypal_order_id);
+            return {transactionState:"SUCCESS"};
+          }catch(error){
+            console.error(error);
+            return {transactionState:"ERROR",error:{message:error.message}};
+          }
+        }
+      }
+    });
+
+    const ready=await paymentsClient.isReadyToPay({
+      allowedPaymentMethods:config.allowedPaymentMethods,
+      apiVersion:config.apiVersion,
+      apiVersionMinor:config.apiVersionMinor
+    });
+
+    if(!ready.result) return;
+
+    const button=paymentsClient.createButton({
+      buttonType:"pay",
+      buttonColor:"black",
+      onClick:async()=>{
+        const request={
+          apiVersion:config.apiVersion,
+          apiVersionMinor:config.apiVersionMinor,
+          allowedPaymentMethods:config.allowedPaymentMethods,
+          merchantInfo:config.merchantInfo,
+          transactionInfo:{
+            countryCode:config.countryCode,
+            currencyCode:"HKD",
+            totalPriceStatus:"FINAL",
+            totalPrice:Number(activeOrder.price).toFixed(2),
+            totalPriceLabel:"能量工作室"
+          },
+          callbackIntents:["PAYMENT_AUTHORIZATION"]
+        };
+        await paymentsClient.loadPaymentData(request);
+      }
+    });
+
+    container.classList.remove("hidden");
+    document.getElementById("googlePayButton").appendChild(button);
+  }catch(error){
+    console.info("Google Pay unavailable:",error);
+  }
+}
+
+async function setupApplePay(){
+  const container=document.getElementById("applePayMethod");
+  if(!window.ApplePaySession || !window.paypal?.Applepay) return;
+
+  try{
+    if(!ApplePaySession.canMakePayments()) return;
+
+    const applepay=paypal.Applepay();
+    const config=await applepay.config();
+    if(!config.isEligible) return;
+
+    container.classList.remove("hidden");
+
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="wallet-button";
+    button.textContent="  使用 Apple Pay";
+    button.addEventListener("click",async()=>{
+      const request={
+        countryCode:config.countryCode,
+        currencyCode:"HKD",
+        merchantCapabilities:config.merchantCapabilities,
+        supportedNetworks:config.supportedNetworks,
+        total:{
+          label:"能量工作室",
+          type:"final",
+          amount:Number(activeOrder.price).toFixed(2)
+        }
+      };
+
+      const session=new ApplePaySession(4,request);
+
+      session.onvalidatemerchant=async(event)=>{
+        try{
+          const {merchantSession}=await applepay.validateMerchant({
+            validationUrl:event.validationURL
+          });
+          session.completeMerchantValidation(merchantSession);
+        }catch(error){
+          console.error(error);
+          session.abort();
+        }
+      };
+
+      session.onpaymentauthorized=async(event)=>{
+        try{
+          const data=await createPayPalOrder({
+            apple_pay:{
+              attributes:{
+                verification:{method:"SCA_WHEN_REQUIRED"}
+              }
+            }
+          });
+
+          const confirm=await applepay.confirmOrder({
+            orderId:data.paypal_order_id,
+            token:event.payment.token,
+            billingContact:event.payment.billingContact
+          });
+
+          if(confirm.status!=="APPROVED"){
+            session.completePayment(ApplePaySession.STATUS_FAILURE);
+            return;
+          }
+
+          await capturePayPalOrder(data.paypal_order_id);
+          session.completePayment(ApplePaySession.STATUS_SUCCESS);
+          setStatus("✓ Apple Pay 付款已完成，訂單狀態已更新。","success");
+          document.getElementById("paymentBox").innerHTML="<h3>付款完成</h3><p class='success'>✓ 已收到付款，你的訂單已進入處理流程。</p>";
+        }catch(error){
+          console.error(error);
+          session.completePayment(ApplePaySession.STATUS_FAILURE);
+          setStatus("Apple Pay 付款失敗，請改用其他付款方式。","error");
+        }
+      };
+
+      session.begin();
+    });
+
+    container.appendChild(button);
+  }catch(error){
+    console.info("Apple Pay unavailable:",error);
+  }
+}
 
 async function capturePayPalReturn(){
   const params=new URLSearchParams(location.search);
@@ -110,7 +427,7 @@ async function capturePayPalReturn(){
 
   if(params.get("paypal_return")!=="1" || !orderNumber || !paypalOrderId)return;
 
-  status.textContent="正在確認 PayPal 付款……";
+  setStatus("正在確認 PayPal 付款……");
 
   try{
     const response=await fetch("/api/capture-paypal-order",{
@@ -125,12 +442,12 @@ async function capturePayPalReturn(){
 
     if(!response.ok) throw new Error(data.error||"付款確認失敗。");
 
-    status.textContent=data.paid
+    setStatus(data.paid
       ?"✓ PayPal 付款已完成，訂單狀態已更新。"
-      :"PayPal 付款狀態已確認。";
+      :"PayPal 付款狀態已確認。","success");
   }catch(error){
     console.error(error);
-    status.textContent=error.message;
+    setStatus(error.message,"error");
   }
 }
 
@@ -138,7 +455,7 @@ async function lookup(){
   const orderNumber=document.getElementById("orderNumber").value.trim();
   const contact=document.getElementById("contact").value.trim();
 
-  status.textContent="查詢中……";
+  setStatus("查詢中……");
   result.innerHTML="";
   btn.disabled=true;
 
@@ -153,11 +470,11 @@ async function lookup(){
     const order=data?.[0];
 
     if(!order){
-      status.textContent="找不到訂單，請確認資料是否正確。";
+      setStatus("找不到訂單，請確認資料是否正確。");
       return;
     }
 
-    status.textContent="";
+    activeOrder=order;
 
     const statusText={
       pending:"🟡 待處理",
@@ -176,14 +493,48 @@ async function lookup(){
         <div class="row">付款：<strong>${escapeHtml(paymentText)}</strong></div>
         <div class="row">價格：<strong>HKD $${escapeHtml(String(order.price))}</strong></div>
         <div class="row">需求：<strong>${escapeHtml(order.details)}</strong></div>
-        ${order.payment_status!=="paid" && order.status!=="cancelled"
-          ? `<button class="pay pay-button" data-order-number="${escapeAttribute(order.order_number)}">前往付款 HKD $${escapeHtml(String(order.price))}</button>`
-          : ""}
+
+        ${order.payment_status!=="paid" && order.status!=="cancelled" ? `
+          <div class="payment-box" id="paymentBox">
+            <h3>選擇付款方式</h3>
+            <p class="small">付款由 PayPal 安全處理。實際可用的付款方式會依你的裝置、地區與 PayPal 商家資格自動顯示。</p>
+            <div id="paymentLoading" class="status">正在載入付款方式……</div>
+
+            <div class="payment-method">
+              <h3>PayPal</h3>
+              <div id="paypalButtons" class="paypal-buttons"></div>
+            </div>
+
+            <div id="cardMethod" class="payment-method hidden">
+              <h3>信用卡 / Debit Card</h3>
+              <div class="card-fields">
+                <div id="cardName" class="card-field"></div>
+                <div id="cardNumber" class="card-field"></div>
+                <div id="cardExpiry" class="card-field"></div>
+                <div id="cardCvv" class="card-field"></div>
+              </div>
+              <button id="cardSubmit" class="card-submit">使用信用卡付款</button>
+            </div>
+
+            <div id="googlePayMethod" class="payment-method hidden">
+              <h3>Google Pay</h3>
+              <div id="googlePayButton"></div>
+            </div>
+
+            <div id="applePayMethod" class="payment-method hidden">
+              <h3>Apple Pay</h3>
+            </div>
+          </div>
+        ` : ""}
       </div>
     `;
+
+    if(order.payment_status!=="paid" && order.status!=="cancelled"){
+      setupPaymentMethods();
+    }
   }catch(error){
     console.error(error);
-    status.textContent="查詢失敗，請稍後再試。";
+    setStatus("查詢失敗，請稍後再試。","error");
   }finally{
     btn.disabled=false;
     btn.textContent="查詢 ↗";
@@ -202,5 +553,7 @@ if(params.get("order")){
 
 capturePayPalReturn();
 </script>
+<script src="https://pay.google.com/gp/p/js/pay.js"></script>
+<script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@ async function getPayPalAccessToken() {
   const response = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
     method: "POST",
     headers: {
-      "Authorization": `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: "grant_type=client_credentials"
@@ -22,29 +22,26 @@ async function getPayPalAccessToken() {
     throw new Error(`PayPal 認證失敗：${response.status} ${errorText}`);
   }
 
-  const data = await response.json();
-  return data.access_token;
+  return (await response.json()).access_token;
 }
 
 async function supabaseRequest(path, options = {}) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${process.env.SUPABASE_URL}${path}`, {
+  return fetch(`${process.env.SUPABASE_URL}${path}`, {
     ...options,
     headers: {
-      "apikey": key,
-      "Authorization": `Bearer ${key}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
       ...(options.headers || {})
     }
   });
-
-  return response;
 }
 
-async function createPayPalOrder(order, accessToken, origin) {
+async function createPayPalOrder(order, accessToken, origin, paymentSource = null) {
   const response = await fetch("https://api-m.paypal.com/v2/checkout/orders", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       "PayPal-Request-Id": `ton618-${order.order_number}`
     },
@@ -59,6 +56,7 @@ async function createPayPalOrder(order, accessToken, origin) {
           value: Number(order.price).toFixed(2)
         }
       }],
+      ...(paymentSource ? { payment_source: paymentSource } : {}),
       application_context: {
         brand_name: "能量工作室",
         user_action: "PAY_NOW",
@@ -92,7 +90,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { order_number } = req.body || {};
+    const { order_number, payment_source } = req.body || {};
 
     if (!order_number) {
       return res.status(400).json({ error: "缺少訂單編號。" });
@@ -117,10 +115,10 @@ export default async function handler(req, res) {
 
     const accessToken = await getPayPalAccessToken();
     const origin = getOrigin(req);
-    const paypalOrder = await createPayPalOrder(order, accessToken, origin);
+    const paypalOrder = await createPayPalOrder(order, accessToken, origin, payment_source);
     const approvalLink = paypalOrder.links?.find(link => link.rel === "approve")?.href;
 
-    if (!approvalLink) {
+    if (!payment_source && !approvalLink) {
       throw new Error("PayPal 沒有返回付款連結。");
     }
 
@@ -133,7 +131,10 @@ export default async function handler(req, res) {
       }
     );
 
-    return res.status(200).json({ url: approvalLink });
+    return res.status(200).json({
+      url: approvalLink || null,
+      paypal_order_id: paypalOrder.id
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "建立 PayPal 付款頁面失敗。" });
