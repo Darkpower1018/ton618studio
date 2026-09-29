@@ -120,7 +120,7 @@ export default async function handler(req, res) {
     const paypalOrder = await createPayPalOrder(order, accessToken, origin);
     const approvalLink = paypalOrder.links?.find(link => link.rel === "approve")?.href;
 
-    if (!approvalLink) {
+    if (!payment_source && !approvalLink) {
       throw new Error("PayPal 沒有返回付款連結。");
     }
 
