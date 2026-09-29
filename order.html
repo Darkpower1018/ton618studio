@@ -144,7 +144,8 @@ async function loadPayPalSdk(){
         "client-id":tokenData.client_id,
         "currency":"HKD",
         "intent":"capture",
-        "components":"buttons,card-fields,applepay,googlepay,funding-eligibility"
+        "components":"buttons,card-fields,applepay,googlepay,marks,funding-eligibility",
+        "enable-funding":"card"
       });
       script.src="https://www.paypal.com/sdk/js?"+params.toString();
       script.dataset.clientToken=tokenData.client_token;
@@ -169,7 +170,8 @@ async function setupPaymentMethods(){
     await loadPayPalSdk();
     loading.textContent="";
 
-    paypal.Buttons({
+    const paypalButton=paypal.Buttons({
+      fundingSource:paypal.FUNDING.PAYPAL,
       style:{
         layout:"vertical",
         shape:"rect",
@@ -181,10 +183,10 @@ async function setupPaymentMethods(){
         return data.paypal_order_id;
       },
       onApprove:async(data)=>{
-        setStatus("正在確認付款……");
+        setStatus("正在確認 PayPal 付款……");
         try{
           await capturePayPalOrder(data.orderID);
-          setStatus("✓ 付款已完成，訂單狀態已更新。","success");
+          setStatus("✓ PayPal 付款已完成，訂單狀態已更新。","success");
           document.getElementById("paymentBox").innerHTML="<h3>付款完成</h3><p class='success'>✓ 已收到付款，你的訂單已進入處理流程。</p>";
         }catch(error){
           setStatus(error.message,"error");
@@ -195,7 +197,49 @@ async function setupPaymentMethods(){
         console.error(error);
         setStatus("PayPal 付款失敗，請改用其他付款方式再試。","error");
       }
-    }).render("#paypalButtons");
+    });
+    paypalButton.render("#paypalButtons");
+
+    // PayPal 的卡片 funding button 會讓買家在進入結帳前就看到「信用卡／Debit Card」選項。
+    const cardFundingButton=paypal.Buttons({
+      fundingSource:paypal.FUNDING.CARD,
+      style:{
+        layout:"vertical",
+        shape:"rect",
+        label:"pay",
+        height:48
+      },
+      createOrder:async()=>{
+        const data=await createPayPalOrder({
+          card:{
+            attributes:{
+              verification:{method:"SCA_WHEN_REQUIRED"}
+            }
+          }
+        });
+        return data.paypal_order_id;
+      },
+      onApprove:async(data)=>{
+        setStatus("正在確認信用卡付款……");
+        try{
+          await capturePayPalOrder(data.orderID);
+          setStatus("✓ 信用卡付款已完成，訂單狀態已更新。","success");
+          document.getElementById("paymentBox").innerHTML="<h3>付款完成</h3><p class='success'>✓ 已收到付款，你的訂單已進入處理流程。</p>";
+        }catch(error){
+          setStatus(error.message,"error");
+        }
+      },
+      onCancel:()=>setStatus("付款已取消，你可以重新選擇付款方式。"),
+      onError:(error)=>{
+        console.error(error);
+        setStatus("信用卡付款失敗，請改用其他付款方式再試。","error");
+      }
+    });
+
+    if(cardFundingButton.isEligible()){
+      document.getElementById("cardFundingMethod").classList.remove("hidden");
+      cardFundingButton.render("#cardFundingButton");
+    }
 
     const cardFields=paypal.CardFields({
       createOrder:async()=>{
@@ -503,6 +547,12 @@ async function lookup(){
             <div class="payment-method">
               <h3>PayPal</h3>
               <div id="paypalButtons" class="paypal-buttons"></div>
+            </div>
+
+            <div id="cardFundingMethod" class="payment-method hidden">
+              <h3>信用卡 / Debit Card</h3>
+              <p class="small">直接選擇信用卡付款，不需要先進入 PayPal 再返回。</p>
+              <div id="cardFundingButton" class="paypal-buttons"></div>
             </div>
 
             <div id="cardMethod" class="payment-method hidden">
