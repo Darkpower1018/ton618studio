@@ -369,10 +369,10 @@ async function setupApplePay(){
 
       session.onvalidatemerchant=async(event)=>{
         try{
-          const merchantSession=await applepay.validateMerchant({
+          const {merchantSession}=await applepay.validateMerchant({
             validationUrl:event.validationURL
           });
-          session.completeMerchantValidation(merchantSession.merchantSession);
+          session.completeMerchantValidation(merchantSession);
         }catch(error){
           console.error(error);
           session.abort();
@@ -553,7 +553,7 @@ if(params.get("order")){
 
 capturePayPalReturn();
 </script>
-<script async src="https://pay.google.com/gp/p/js/pay.js"></script>
+<script src="https://pay.google.com/gp/p/js/pay.js"></script>
 <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
 </body>
 </html>
