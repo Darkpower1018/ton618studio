@@ -1,8 +1,3 @@
-function getOrigin(req) {
-  return process.env.PUBLIC_SITE_URL ||
-    `${req.headers["x-forwarded-proto"] || "https"}://${req.headers.host}`;
-}
-
 async function getPayPalAccessToken() {
   const credentials = Buffer.from(
     `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
@@ -11,7 +6,7 @@ async function getPayPalAccessToken() {
   const response = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
     method: "POST",
     headers: {
-      "Authorization": `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: "grant_type=client_credentials"
@@ -22,120 +17,43 @@ async function getPayPalAccessToken() {
     throw new Error(`PayPal 認證失敗：${response.status} ${errorText}`);
   }
 
-  const data = await response.json();
-  return data.access_token;
-}
-
-async function supabaseRequest(path, options = {}) {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${process.env.SUPABASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "apikey": key,
-      "Authorization": `Bearer ${key}`,
-      ...(options.headers || {})
-    }
-  });
-
-  return response;
-}
-
-async function createPayPalOrder(order, accessToken, origin) {
-  const response = await fetch("https://api-m.paypal.com/v2/checkout/orders", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "PayPal-Request-Id": `ton618-${order.order_number}`
-    },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [{
-        reference_id: order.order_number,
-        custom_id: order.order_number,
-        description: `${order.service}｜${order.package}`,
-        amount: {
-          currency_code: "HKD",
-          value: Number(order.price).toFixed(2)
-        }
-      }],
-      application_context: {
-        brand_name: "能量工作室",
-        user_action: "PAY_NOW",
-        return_url: `${origin}/order.html?order=${encodeURIComponent(order.order_number)}&paypal_return=1`,
-        cancel_url: `${origin}/order.html?order=${encodeURIComponent(order.order_number)}`
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`建立 PayPal 訂單失敗：${response.status} ${errorText}`);
-  }
-
-  return response.json();
+  return (await response.json()).access_token;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (
-    !process.env.PAYPAL_CLIENT_ID ||
-    !process.env.PAYPAL_CLIENT_SECRET ||
-    !process.env.SUPABASE_URL ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    return res.status(500).json({ error: "付款功能尚未完成伺服器設定。" });
+  if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+    return res.status(500).json({ error: "PayPal 尚未完成伺服器設定。" });
   }
 
   try {
-    const { order_number } = req.body || {};
+    const accessToken = await getPayPalAccessToken();
+    const response = await fetch("https://api-m.paypal.com/v1/identity/generate-token", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Accept-Language": "en_US",
+        "Content-Type": "application/json"
+      }
+    });
 
-    if (!order_number) {
-      return res.status(400).json({ error: "缺少訂單編號。" });
-    }
-
-    const response = await supabaseRequest(
-      `/rest/v1/orders?order_number=eq.${encodeURIComponent(order_number)}&select=order_number,service,package,price,customer_name,payment_status`
-    );
+    const data = await response.json();
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`無法取得訂單：${response.status} ${errorText}`);
+      console.error("PayPal client token failed:", response.status, data);
+      return res.status(500).json({ error: "無法取得 PayPal 付款元件。" });
     }
 
-    const rows = await response.json();
-    const order = rows[0];
-
-    if (!order) return res.status(404).json({ error: "找不到訂單。" });
-    if (order.payment_status === "paid") {
-      return res.status(400).json({ error: "這張訂單已付款。" });
-    }
-
-    const accessToken = await getPayPalAccessToken();
-    const origin = getOrigin(req);
-    const paypalOrder = await createPayPalOrder(order, accessToken, origin);
-    const approvalLink = paypalOrder.links?.find(link => link.rel === "approve")?.href;
-
-    if (!payment_source && !approvalLink) {
-      throw new Error("PayPal 沒有返回付款連結。");
-    }
-
-    await supabaseRequest(
-      `/rest/v1/orders?order_number=eq.${encodeURIComponent(order.order_number)}`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stripe_session_id: paypalOrder.id })
-      }
-    );
-
-    return res.status(200).json({ url: approvalLink });
+    return res.status(200).json({
+      client_token: data.client_token,
+      client_id: process.env.PAYPAL_CLIENT_ID
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "建立 PayPal 付款頁面失敗。" });
+    return res.status(500).json({ error: "無法初始化 PayPal 付款元件。" });
   }
 }
