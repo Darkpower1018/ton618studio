@@ -103,6 +103,37 @@ document.addEventListener("click",event=>{
   pay(button.dataset.orderNumber,button);
 });
 
+async function capturePayPalReturn(){
+  const params=new URLSearchParams(location.search);
+  const orderNumber=params.get("order");
+  const paypalOrderId=params.get("token");
+
+  if(params.get("paypal_return")!=="1" || !orderNumber || !paypalOrderId)return;
+
+  status.textContent="正在確認 PayPal 付款……";
+
+  try{
+    const response=await fetch("/api/capture-paypal-order",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        order_number:orderNumber,
+        paypal_order_id:paypalOrderId
+      })
+    });
+    const data=await response.json();
+
+    if(!response.ok) throw new Error(data.error||"付款確認失敗。");
+
+    status.textContent=data.paid
+      ?"✓ PayPal 付款已完成，訂單狀態已更新。"
+      :"PayPal 付款狀態已確認。";
+  }catch(error){
+    console.error(error);
+    status.textContent=error.message;
+  }
+}
+
 async function lookup(){
   const orderNumber=document.getElementById("orderNumber").value.trim();
   const contact=document.getElementById("contact").value.trim();
@@ -168,9 +199,8 @@ const params=new URLSearchParams(location.search);
 if(params.get("order")){
   document.getElementById("orderNumber").value=params.get("order");
 }
-if(params.get("paid")==="1"){
-  status.textContent="付款頁面已完成操作；付款狀態以 Stripe webhook 更新結果為準。";
-}
+
+capturePayPalReturn();
 </script>
 </body>
 </html>
