@@ -469,7 +469,7 @@ async function capturePayPalReturn(){
   const orderNumber=params.get("order");
   const paypalOrderId=params.get("token");
 
-  if(params.get("paypal_return")!=="1" || !orderNumber || !paypalOrderId)return;
+  if(params.get("paypal_return")!=="1" || !orderNumber || !paypalOrderId)return false;
 
   setStatus("正在確認 PayPal 付款……");
 
@@ -489,9 +489,23 @@ async function capturePayPalReturn(){
     setStatus(data.paid
       ?"✓ PayPal 付款已完成，訂單狀態已更新。"
       :"PayPal 付款狀態已確認。","success");
+    return true;
   }catch(error){
     console.error(error);
     setStatus(error.message,"error");
+    return false;
+  }
+}
+
+function saveLookupSession(orderNumber, contact){
+  sessionStorage.setItem("ton618_order_lookup", JSON.stringify({orderNumber, contact}));
+}
+
+function getSavedLookupSession(){
+  try{
+    return JSON.parse(sessionStorage.getItem("ton618_order_lookup")||"null");
+  }catch{
+    return null;
   }
 }
 
@@ -519,6 +533,7 @@ async function lookup(){
     }
 
     activeOrder=order;
+    saveLookupSession(orderNumber, contact);
 
     const statusText={
       pending:"🟡 待處理",
@@ -597,11 +612,30 @@ form.addEventListener("submit",event=>{
 });
 
 const params=new URLSearchParams(location.search);
-if(params.get("order")){
-  document.getElementById("orderNumber").value=params.get("order");
+const returnOrderNumber=params.get("order");
+const savedLookup=getSavedLookupSession();
+
+if(returnOrderNumber){
+  document.getElementById("orderNumber").value=returnOrderNumber;
 }
 
-capturePayPalReturn();
+(async()=>{
+  const returnedFromPayPal=await capturePayPalReturn();
+
+  // PayPal 返回後 URL 不會保留查詢時輸入的 contact。
+  // 同一個瀏覽器工作階段自動恢復，避免買家再次輸入聯絡帳號。
+  if(
+    returnOrderNumber &&
+    savedLookup &&
+    savedLookup.orderNumber===returnOrderNumber &&
+    savedLookup.contact
+  ){
+    document.getElementById("contact").value=savedLookup.contact;
+    await lookup();
+  }else if(returnedFromPayPal){
+    setStatus("付款頁已返回。請輸入下單時的聯絡帳號即可恢復訂單。");
+  }
+})();
 </script>
 <script src="https://pay.google.com/gp/p/js/pay.js"></script>
 <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
