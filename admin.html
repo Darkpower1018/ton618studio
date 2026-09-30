@@ -364,6 +364,26 @@
       }
     }
 
+    .works-manager {
+      margin-top: 28px;
+      margin-bottom: 28px;
+    }
+    .work-upload { display:grid; gap:12px; margin-bottom:18px; }
+    .work-upload select, .work-upload input[type="file"] {
+      width:100%; padding:12px 14px; border-radius:10px;
+      border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.28);
+      color:#f4f1fa; outline:none; font:inherit;
+    }
+    .work-upload select:focus, .work-upload input[type="file"]:focus { border-color:rgba(164,103,255,0.6); }
+    .work-upload small { color:#777080; line-height:1.6; }
+    .work-list { display:grid; gap:10px; }
+    .work-item {
+      display:flex; justify-content:space-between; align-items:center; gap:15px;
+      padding:14px 16px; border:1px solid rgba(255,255,255,0.08);
+      background:rgba(0,0,0,0.18); border-radius:12px;
+    }
+    .work-item strong { display:block; color:#f4f1fa; }
+    .work-item span { display:block; margin-top:4px; color:#8e8998; font-size:12px; }
     .orders {
       display: grid;
       gap: 16px;
@@ -626,6 +646,26 @@
 
     </section>
     
+<section class="works-manager">
+  <h2>作品管理</h2>
+  <div class="card">
+    <div class="work-upload">
+      <input type="text" id="newWorkTitle" placeholder="作品名稱，例如：PUBGM Highlight #01 / TON618 - 黑洞深處">
+      <select id="newWorkCategory">
+        <option value="video">影片作品</option>
+        <option value="music">音樂作品</option>
+      </select>
+      <input type="file" id="newWorkFile" accept="video/*,audio/*,image/*">
+      <small>影片可上傳 MP4 / MOV / WebM；音樂可上傳 MP3 / WAV；也可以上傳作品封面圖片。上傳後會直接出現在網站「作品」區。</small>
+      <button class="primary-btn" type="button" id="uploadWorkBtn">＋ 上傳作品</button>
+      <div class="status" id="workUploadStatus"></div>
+    </div>
+    <div class="work-list" id="workList">
+      <div class="empty">載入作品中……</div>
+    </div>
+  </div>
+</section>
+
 <div class="order-tools">
 
   <input
@@ -767,6 +807,7 @@
 
     await loadOrders();
     await loadServices();
+    await loadWorks();
 
   }
 
@@ -996,6 +1037,88 @@ orderStatusFilter.addEventListener(
 
 
   // =========================
+  // 作品管理
+  // =========================
+
+  const workUploadBtn = document.getElementById("uploadWorkBtn");
+  const workUploadStatus = document.getElementById("workUploadStatus");
+
+  async function loadWorks() {
+    const workList = document.getElementById("workList");
+    if (!workList) return;
+    workList.innerHTML = '<div class="empty">載入作品中……</div>';
+    const categories = ["video", "music"];
+    const rows = [];
+    for (const category of categories) {
+      const { data, error } = await supabaseClient.storage.from("works").list(category, {
+        limit: 100, sortBy: { column: "created_at", order: "desc" }
+      });
+      if (error) {
+        console.error(error);
+        workList.innerHTML = '<div class="empty">無法載入作品。請確認 Supabase 已建立 works Storage bucket。</div>';
+        return;
+      }
+      (data || []).forEach(file => {
+        if (!file.name || file.name.startsWith(".")) return;
+        const separator = file.name.indexOf("__");
+        const encodedTitle = separator >= 0 ? file.name.slice(separator + 2) : file.name;
+        const dot = encodedTitle.lastIndexOf(".");
+        const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
+        let title = titlePart;
+        try { title = decodeURIComponent(titlePart); } catch (_) {}
+        rows.push({ category, title, name: file.name });
+      });
+    }
+    if (!rows.length) {
+      workList.innerHTML = '<div class="empty">目前沒有作品。你可以在上方上傳第一個作品。</div>';
+      return;
+    }
+    workList.innerHTML = rows.map(work =>
+      '<div class="work-item"><div><strong>' + escapeHtml(work.title) + '</strong><span>' +
+      (work.category === "video" ? "影片作品" : "音樂作品") + '</span></div></div>'
+    ).join("");
+  }
+
+  workUploadBtn?.addEventListener("click", async () => {
+    const titleInput = document.getElementById("newWorkTitle");
+    const categoryInput = document.getElementById("newWorkCategory");
+    const fileInput = document.getElementById("newWorkFile");
+    const title = titleInput.value.trim();
+    const file = fileInput.files?.[0];
+    const category = categoryInput.value;
+    if (!title) { alert("請輸入作品名稱。"); return; }
+    if (!file) { alert("請選擇作品檔案。"); return; }
+    if (file.size > 500 * 1024 * 1024) { alert("作品檔案不能超過 500 MB。"); return; }
+    const allowedVideo = ["video/mp4", "video/webm", "video/quicktime"];
+    const allowedAudio = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/wave"];
+    const allowedImage = ["image/jpeg", "image/png", "image/webp"];
+    const allowed = category === "video" ? [...allowedVideo, ...allowedImage] : [...allowedAudio, ...allowedImage];
+    if (!allowed.includes(file.type)) {
+      alert(category === "video" ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。" : "音樂作品請上傳 MP3、WAV 或作品封面圖片。");
+      return;
+    }
+    const safeTitle = encodeURIComponent(title).slice(0, 180);
+    const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase() : "";
+    const path = category + "/" + crypto.randomUUID() + "__" + safeTitle + extension;
+    workUploadBtn.disabled = true;
+    workUploadBtn.textContent = "上傳中……";
+    workUploadStatus.textContent = "正在上傳作品，請不要關閉頁面。";
+    const { error } = await supabaseClient.storage.from("works").upload(path, file, {
+      cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
+    });
+    if (error) {
+      console.error(error);
+      workUploadStatus.textContent = "✕ 上傳失敗：" + error.message;
+      workUploadBtn.disabled = false; workUploadBtn.textContent = "＋ 上傳作品";
+      return;
+    }
+    titleInput.value = ""; fileInput.value = "";
+    workUploadStatus.textContent = "✓ 作品已上傳，網站會自動更新。";
+    await loadWorks();
+    workUploadBtn.disabled = false; workUploadBtn.textContent = "＋ 上傳作品";
+  });
+
+  // =========================
   // 訂單卡片
   // =========================
 
@@ -1170,6 +1293,7 @@ function createOrderHTML(order) {
 
   loadOrders();
   loadServices();
+  loadWorks();
 
 });
 
@@ -1516,6 +1640,7 @@ document.addEventListener("click", async event => {
 
   checkSession();
   loadServices();
+  loadWorks();
 
 </script>
 
