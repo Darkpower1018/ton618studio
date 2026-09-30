@@ -63,13 +63,7 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .service-head{position:relative;z-index:1}
 .service-head .icon{font-size:42px;margin:34px 0 12px;color:#a467ff}
 .service-head h3{font-size:32px;margin:0 0 10px}
-.service-video{margin-top:24px;width:100%;max-width:560px;border:1px solid #ffffff12;border-radius:8px;overflow:hidden;background:#050407}
-.service-video video{display:block;width:100%;height:auto;max-height:360px;object-fit:contain;background:#000}
-@media(max-width:600px){.service-video{margin-top:18px}.service-video video{max-height:240px}}
 .service-head .tags{display:flex;gap:8px;margin-top:28px;position:static}
-.service-video{margin-top:24px;width:100%;max-width:560px;border:1px solid #ffffff12;background:#050407;border-radius:8px;overflow:hidden}
-.service-video video{display:block;width:100%;height:auto;max-height:360px;object-fit:contain;background:#000}
-@media(max-width:600px){.service-video{margin-top:18px}.service-video video{max-height:240px}}
 .service-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative;z-index:1}
 .music-block .service-prices{grid-template-columns:repeat(2,1fr)}
 .works{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
@@ -686,36 +680,6 @@ async function loadServices() {
     lookupEyebrow.textContent = "ORDER STATUS";
   }
 
-  let gunsyncVideoUrl = "";
-  const { data: gunsyncMedia, error: gunsyncMediaError } = await supabaseClient
-    .from("service_media")
-    .select("storage_path,mime_type")
-    .eq("service", "GUNSYNC")
-    .maybeSingle();
-
-  if (gunsyncMediaError) {
-    console.error("載入 GUNSYNC 展示影片失敗：", gunsyncMediaError);
-  } else if (gunsyncMedia?.storage_path) {
-    const { data: mediaUrlData } = supabaseClient.storage
-      .from("works")
-      .getPublicUrl(gunsyncMedia.storage_path);
-    gunsyncVideoUrl = mediaUrlData?.publicUrl || "";
-  }
-
-  let gunsyncVideoUrl = "";
-  const { data: gunsyncMedia, error: gunsyncMediaError } = await supabaseClient
-    .from("service_media")
-    .select("storage_path")
-    .eq("service", "GUNSYNC")
-    .maybeSingle();
-
-  if (!gunsyncMediaError && gunsyncMedia?.storage_path) {
-    const { data: mediaUrlData } = supabaseClient.storage
-      .from("works")
-      .getPublicUrl(gunsyncMedia.storage_path);
-    gunsyncVideoUrl = mediaUrlData?.publicUrl || "";
-  }
-
   const container = document.getElementById("serviceCategories");
   if (container) {
     container.innerHTML = categories.map((category, categoryIndex) => {
@@ -737,16 +701,6 @@ async function loadServices() {
               <div class="icon">${m.icon}</div>
               <h3>${escapeHtml(category)}</h3>
               <p class="muted">${escapeHtml(categoryDescription)}</p>
-              ${category === "GUNSYNC" && gunsyncVideoUrl ? `
-                <div class="service-video">
-                  <video controls playsinline preload="metadata" src="${escapeAttribute(gunsyncVideoUrl)}"></video>
-                </div>
-              ` : ""}
-              ${category === "GUNSYNC" && gunsyncVideoUrl ? `
-                <div class="service-video">
-                  <video controls playsinline preload="metadata" src="${escapeAttribute(gunsyncVideoUrl)}"></video>
-                </div>
-              ` : ""}
               <div class="tags">
                 ${displayTags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
               </div>
