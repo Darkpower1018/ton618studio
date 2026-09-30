@@ -1065,7 +1065,13 @@ orderStatusFilter.addEventListener(
         const dot = encodedTitle.lastIndexOf(".");
         const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
         let title = titlePart;
-        try { title = decodeURIComponent(titlePart); } catch (_) {}
+        try {
+          // New uploads use URL-safe Base64 for Chinese / Unicode titles.
+          const padded = titlePart.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((titlePart.length + 3) % 4);
+          title = decodeURIComponent(escape(atob(padded)));
+        } catch (_) {
+          try { title = decodeURIComponent(titlePart); } catch (_) {}
+        }
         rows.push({ category, title, name: file.name });
       });
     }
@@ -1097,9 +1103,16 @@ orderStatusFilter.addEventListener(
       alert(category === "video" ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。" : "音樂作品請上傳 MP3、WAV 或作品封面圖片。");
       return;
     }
-    const safeTitle = encodeURIComponent(title).slice(0, 180);
-    const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase() : "";
-    const path = category + "/" + crypto.randomUUID() + "__" + safeTitle + extension;
+    // Supabase Storage object keys should stay ASCII-safe.
+    // Store the display title as URL-safe Base64 instead of raw Chinese characters.
+    const titleBase64 = btoa(unescape(encodeURIComponent(title)))
+      .replace(/\\+/g, "-")
+      .replace(/\\//g, "_")
+      .replace(/=+$/g, "");
+    const extension = file.name.includes(".")
+      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase().replace(/[^a-z0-9.]/g, "")
+      : "";
+    const path = category + "/" + crypto.randomUUID() + "__" + titleBase64 + extension;
     workUploadBtn.disabled = true;
     workUploadBtn.textContent = "上傳中……";
     workUploadStatus.textContent = "正在上傳作品，請不要關閉頁面。";
