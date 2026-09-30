@@ -163,22 +163,237 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 }
 
 @media(max-width:600px){
-.service-block{padding:25px 20px}
-.service-prices,.music-block .service-prices{grid-template-columns:1fr}
-.hero{padding:110px 22px 50px}
-.hero h1{font-size:55px}
-.disk{width:390px}
-.ring{width:420px}
-.hole{width:150px;height:150px}
-.section{padding:85px 22px}
-.section-title{display:block}
-.section h2{font-size:48px}
-.cards,.prices,.works{grid-template-columns:1fr}
-.work:first-child{grid-column:auto}
-.form{grid-template-columns:1fr;padding:30px 22px}
-.form label:nth-child(5),.form label:nth-child(6),.form button,.status{grid-column:auto}
-.intro{padding:35px 22px}
-footer{flex-direction:column;gap:12px}
+  header{
+    height:auto;
+    min-height:76px;
+    padding:14px 18px;
+    align-items:flex-start;
+    gap:10px;
+    flex-direction:column;
+  }
+
+  .logo{
+    font-size:14px;
+    line-height:20px;
+    flex-shrink:0;
+  }
+
+  .main-nav{
+    width:100%;
+    gap:8px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:3px;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .main-nav::-webkit-scrollbar{
+    display:none;
+  }
+
+  .main-nav a{
+    flex:0 0 auto;
+    padding:7px 10px;
+    border:1px solid #ffffff12;
+    border-radius:999px;
+    background:#08070b;
+    font-size:10px;
+    letter-spacing:.08em;
+  }
+
+  .hero{
+    min-height:auto;
+    grid-template-columns:1fr;
+    padding:155px 22px 65px;
+    gap:10px;
+  }
+
+  .hero > div:first-child{
+    order:2;
+  }
+
+  .blackhole{
+    order:1;
+    height:330px;
+    width:100%;
+    overflow:hidden;
+  }
+
+  .disk{
+    width:360px;
+    height:125px;
+  }
+
+  .ring{
+    width:390px;
+    height:185px;
+  }
+
+  .ring2{
+    width:300px;
+    height:270px;
+  }
+
+  .hole{
+    width:135px;
+    height:135px;
+  }
+
+  .label{
+    top:78%;
+  }
+
+  .hero h1{
+    font-size:clamp(44px,13vw,58px);
+    margin:16px 0;
+  }
+
+  .hero p{
+    font-size:13px;
+    line-height:1.8;
+  }
+
+  .buttons{
+    flex-direction:column;
+    gap:9px;
+  }
+
+  .btn{
+    width:100%;
+    text-align:center;
+  }
+
+  .section{
+    padding:72px 18px;
+  }
+
+  .section-title{
+    display:block;
+    margin-bottom:30px;
+  }
+
+  .section-title .muted{
+    margin-top:14px;
+  }
+
+  .section h2{
+    font-size:42px;
+  }
+
+  .service-block{
+    padding:22px 18px;
+    gap:22px;
+  }
+
+  .service-head .icon{
+    margin:18px 0 10px;
+  }
+
+  .service-head h3{
+    font-size:26px;
+  }
+
+  .service-head .muted{
+    font-size:12px;
+    line-height:1.8;
+  }
+
+  .service-head .tags{
+    flex-wrap:wrap;
+    margin-top:18px;
+  }
+
+  .service-prices,
+  .music-block .service-prices{
+    grid-template-columns:1fr;
+  }
+
+  .price{
+    min-height:250px;
+    padding:22px 18px;
+  }
+
+  .price h3{
+    margin:22px 0 8px;
+  }
+
+  .amount{
+    font-size:38px;
+  }
+
+  .works{
+    grid-template-columns:1fr;
+  }
+
+  .work:first-child{
+    grid-column:auto;
+  }
+
+  .work-info{
+    padding:11px 13px;
+  }
+
+  .orderbox{
+    grid-template-columns:1fr;
+  }
+
+  .intro{
+    padding:30px 22px;
+    border-right:0;
+    border-bottom:1px solid #ffffff12;
+  }
+
+  .intro h2{
+    font-size:45px;
+  }
+
+  .contact{
+    margin-top:32px;
+  }
+
+  .form{
+    grid-template-columns:1fr;
+    padding:25px 18px;
+    gap:14px;
+  }
+
+  .form label:nth-child(5),
+  .form label:nth-child(6),
+  .form button,
+  .status{
+    grid-column:auto;
+  }
+
+  .form input,
+  .form select,
+  .form textarea{
+    width:100%;
+    max-width:100%;
+  }
+
+  .form textarea{
+    min-height:120px;
+  }
+
+  .upload-note{
+    line-height:1.7;
+  }
+
+  .order-success{
+    padding:24px 18px;
+  }
+
+  #lookupResult .card{
+    min-height:auto;
+    padding:24px 20px;
+  }
+
+  footer{
+    flex-direction:column;
+    gap:10px;
+    padding:28px 18px;
+  }
 }
 </style>
 </head>
