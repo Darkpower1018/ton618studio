@@ -186,9 +186,8 @@ footer{flex-direction:column;gap:12px}
 
 <header>
   <div class="logo"><span></span>能量工作室</div>
-  <nav class="main-nav">
-    <a href="#editing">剪輯</a>
-    <a href="#music">編曲</a>
+  <nav class="main-nav" id="serviceNav">
+    <a href="#services">服務</a>
     <a href="#order">下單</a>
     <a href="#lookup">查詢訂單</a>
   </nav>
@@ -200,7 +199,7 @@ footer{flex-direction:column;gap:12px}
   <div>
     <div class="eyebrow">TON618</div>
     <h1>把你的想法<br><span>變成作品。</span></h1>
-    <p>短影音剪輯 × 編曲<br>讓畫面與聲音，擁有屬於自己的能量。</p>
+    <p>短影音剪輯 × 編曲 × 音樂發行<br>讓畫面與聲音，擁有屬於自己的能量。</p>
     <div class="buttons">
       <a class="btn primary" href="#order">開始委託 ↗</a>
       <a class="btn secondary" href="#works">查看作品</a>
@@ -228,80 +227,7 @@ footer{flex-direction:column;gap:12px}
     </div>
   </div>
 
-  <div id="editing" class="service-block">
-    <div class="service-head">
-      <div>
-        <div class="num">01 — VIDEO</div>
-        <div class="icon">◉</div>
-        <h3>短影音剪輯</h3>
-        <p class="muted">
-          節奏剪輯、字幕、音效、BGM、畫面整理，適合 TikTok / Shorts / Reels。
-        </p>
-        <div class="tags">
-          <span class="tag">SHORTS</span>
-          <span class="tag">TIKTOK</span>
-          <span class="tag">REELS</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="service-prices" id="videoServices">
-      <div class="price">
-        <small>VIDEO / 01</small>
-        <h3>一部</h3>
-        <div class="amount"><i>HKD</i> $59</div>
-        <button data-service="短影音剪輯｜一部 HKD $59">選擇套餐</button>
-      </div>
-
-      <div class="price hot">
-        <small>VIDEO / 02</small>
-        <h3>兩部</h3>
-        <div class="amount"><i>HKD</i> $99</div>
-        <button data-service="短影音剪輯｜兩部 HKD $99">選擇套餐</button>
-      </div>
-
-      <div class="price">
-        <small>VIDEO / 03</small>
-        <h3>三部</h3>
-        <div class="amount"><i>HKD</i> $149</div>
-        <button data-service="短影音剪輯｜三部 HKD $149">選擇套餐</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="music" class="service-block music-block">
-    <div class="service-head">
-      <div>
-        <div class="num">02 — MUSIC</div>
-        <div class="icon">◌</div>
-        <h3>編曲</h3>
-        <p class="muted">
-          依照你的旋律、Demo 或想法製作編曲，也可以加入基礎混音＋母帶。
-        </p>
-        <div class="tags">
-          <span class="tag">ARRANGEMENT</span>
-          <span class="tag">MIX</span>
-          <span class="tag">MASTER</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="service-prices" id="musicServices">
-      <div class="price">
-        <small>MUSIC / 01</small>
-        <h3>一首</h3>
-        <div class="amount"><i>HKD</i> $199</div>
-        <button data-service="編曲｜一首 HKD $199">選擇套餐</button>
-      </div>
-
-      <div class="price hot">
-        <small>MUSIC / 02</small>
-        <h3>兩首</h3>
-        <div class="amount"><i>HKD</i> $379</div>
-        <button data-service="編曲｜兩首 HKD $379">選擇套餐</button>
-      </div>
-    </div>
-  </div>
+  <div id="serviceCategories"></div>
 </section>
 
 <section id="works" class="section">
@@ -454,7 +380,7 @@ footer{flex-direction:column;gap:12px}
 
 <footer>
   <strong>能量工作室 × TON618</strong>
-  <span>VIDEO EDITING / MUSIC ARRANGEMENT</span>
+  <span>VIDEO EDITING / MUSIC / DISTRIBUTION</span>
 </footer>
 
 <!-- Supabase JavaScript -->
@@ -493,102 +419,95 @@ async function loadServices() {
     return;
   }
 
-  console.log("服務資料：", data);
-
-
-  // =========================
-  // 短影音剪輯
-  // =========================
-
-  const videoServices =
-    document.getElementById("videoServices");
-
-  if (videoServices) {
-
-    const videoPackages = data.filter(
-      item => item.service === "短影音剪輯"
-    );
-
-    videoServices.innerHTML =
-      videoPackages.map((item, index) => {
-
-        return `
-          <div class="price ${index === 1 ? "hot" : ""}">
-
-            <small>
-              VIDEO / ${String(index + 1).padStart(2, "0")}
-            </small>
-
-            <h3>${item.package}</h3>
-
-            <div class="amount">
-              <i>HKD</i> $${item.price}
-            </div>
-
-            <p class="service-description">
-  ${item.description || ""}
-</p>
-
-            <button
-              data-service="${item.service}｜${item.package} HKD $${item.price}"
-            >
-              選擇套餐
-            </button>
-
-          </div>
-        `;
-
-      }).join("");
-
+  const categories = [];
+  for (const item of (data || [])) {
+    if (item.service && !categories.includes(item.service)) {
+      categories.push(item.service);
+    }
   }
 
+  const meta = {
+    "短影音剪輯": {
+      icon: "◉",
+      code: "VIDEO",
+      description: "節奏剪輯、字幕、音效、BGM、畫面整理，適合 TikTok / Shorts / Reels。",
+      tags: ["SHORTS", "TIKTOK", "REELS"]
+    },
+    "編曲": {
+      icon: "◌",
+      code: "MUSIC",
+      description: "依照你的旋律、Demo 或想法製作編曲，也可以加入基礎混音＋母帶。",
+      tags: ["ARRANGEMENT", "MIX", "MASTER"]
+    },
+    "音樂發行": {
+      icon: "◇",
+      code: "RELEASE",
+      description: "協助整理發行資料、上傳作品並透過 LANDR 送往串流平台。",
+      tags: ["LANDR", "DISTRIBUTION", "MUSIC"]
+    }
+  };
 
-  // =========================
-  // 編曲
-  // =========================
+  const fallbackMeta = {
+    icon: "✦",
+    code: "SERVICE",
+    description: "依照你的需求提供專業製作服務。",
+    tags: ["TON618", "SERVICE"]
+  };
 
-  const musicServices =
-    document.getElementById("musicServices");
+  const container = document.getElementById("serviceCategories");
+  if (container) {
+    container.innerHTML = categories.map((category, categoryIndex) => {
+      const m = meta[category] || fallbackMeta;
+      const items = data.filter(item => item.service === category);
+      const anchor = "service-" + slugify(category);
 
-  if (musicServices) {
-
-    const musicPackages = data.filter(
-      item => item.service === "編曲"
-    );
-
-    musicServices.innerHTML =
-      musicPackages.map((item, index) => {
-
-        return `
-          <div class="price ${index === 1 ? "hot" : ""}">
-
-            <small>
-              MUSIC / ${String(index + 1).padStart(2, "0")}
-            </small>
-
-            <h3>${item.package}</h3>
-
-            <div class="amount">
-              <i>HKD</i> $${item.price}
+      return `
+        <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""}">
+          <div class="service-head">
+            <div>
+              <div class="num">${String(categoryIndex + 1).padStart(2, "0")} — ${m.code}</div>
+              <div class="icon">${m.icon}</div>
+              <h3>${escapeHtml(category)}</h3>
+              <p class="muted">${escapeHtml(m.description)}</p>
+              <div class="tags">
+                ${m.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+              </div>
             </div>
-
-            <p class="service-description">
-  ${item.description || ""}
-</p>
-
-            <button
-              data-service="${item.service}｜${item.package} HKD $${item.price}"
-            >
-              選擇套餐
-            </button>
-
           </div>
-        `;
 
-      }).join("");
-
+          <div class="service-prices">
+            ${items.map((item, index) => `
+              <div class="price ${index === 1 ? "hot" : ""}">
+                <small>${m.code} / ${String(index + 1).padStart(2, "0")}</small>
+                <h3>${escapeHtml(item.package || "方案")}</h3>
+                <div class="amount"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
+                <p class="service-description">${escapeHtml(item.description || "")}</p>
+                <button data-service="${escapeAttribute(`${item.service}｜${item.package} HKD $${item.price}`)}">選擇套餐</button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
+  const nav = document.getElementById("serviceNav");
+  if (nav) {
+    nav.innerHTML =
+      categories.map(category =>
+        `<a href="#service-${slugify(category)}">${escapeHtml(category)}</a>`
+      ).join("") +
+      `<a href="#order">下單</a><a href="#lookup">查詢訂單</a>`;
+  }
+}
+
+function slugify(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fff-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || "service";
 }
 
 loadServices();
