@@ -1073,46 +1073,51 @@ orderStatusFilter.addEventListener(
   async function loadWorks() {
     const workList = document.getElementById("workList");
     if (!workList) return;
+
     workList.innerHTML = '<div class="empty">載入作品中……</div>';
-    const categories = ["video", "music"];
-    const rows = [];
-    for (const category of categories) {
-      const { data, error } = await supabaseClient.storage.from("works").list(category, {
-        limit: 100, sortBy: { column: "created_at", order: "desc" }
-      });
-      if (error) {
-        console.error(error);
-        workList.innerHTML = '<div class="empty">無法載入作品。請確認 Supabase 已建立 works Storage bucket。</div>';
-        return;
-      }
-      (data || []).forEach(file => {
-        if (!file.name || file.name.startsWith(".")) return;
-        const separator = file.name.indexOf("__");
-        const encodedTitle = separator >= 0 ? file.name.slice(separator + 2) : file.name;
-        const dot = encodedTitle.lastIndexOf(".");
-        const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
-        let title = titlePart;
-        try {
-          // New uploads use URL-safe Base64 for Chinese / Unicode titles.
-          const padded = titlePart.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((titlePart.length + 3) % 4);
-          title = decodeURIComponent(escape(atob(padded)));
-        } catch (_) {
-          try { title = decodeURIComponent(titlePart); } catch (_) {}
-        }
-        rows.push({ category, title, name: file.name });
-      });
-    }
-    if (!rows.length) {
-      workList.innerHTML = '<div class="empty">目前沒有作品。你可以在上方上傳第一個作品。</div>';
+
+    const { data: works, error } = await supabaseClient
+      .from("works")
+      .select("id,title,category,storage_path,extension,mime_type,created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      workList.innerHTML =
+        '<div class="empty">無法載入作品資料。<br><br>' +
+        escapeHtml(error.message) +
+        '</div>';
       return;
     }
-    workList.innerHTML = rows.map(work =>
-      '<div class="work-item"><div><strong>' + escapeHtml(work.title) + '</strong><span>' +
-      (work.category === "video" ? "影片作品" : "音樂作品") + '</span></div>' +
-      '<div class="work-actions">' +
-      '<button type="button" class="work-edit-btn" data-category="' + escapeAttribute(work.category) + '" data-name="' + escapeAttribute(work.name) + '" data-title="' + escapeAttribute(work.title) + '">修改名稱</button>' +
-      '<button type="button" class="work-delete-btn" data-category="' + escapeAttribute(work.category) + '" data-name="' + escapeAttribute(work.name) + '">刪除</button>' +
-      '</div></div>'
+
+    if (!works || works.length === 0) {
+      workList.innerHTML =
+        '<div class="empty">目前沒有作品。你可以在上方上傳第一個作品。</div>';
+      return;
+    }
+
+    workList.innerHTML = works.map(work =>
+      '<div class="work-item">' +
+        '<div>' +
+          '<strong>' + escapeHtml(work.title) + '</strong>' +
+          '<span>' +
+            (work.category === "video" ? "影片作品" : "音樂作品") +
+            ' · ' + escapeHtml(String(work.extension || "").toUpperCase()) +
+          '</span>' +
+        '</div>' +
+        '<div class="work-actions">' +
+          '<button type="button" class="work-edit-btn"' +
+            ' data-id="' + escapeAttribute(work.id) + '"' +
+            ' data-title="' + escapeAttribute(work.title) + '">' +
+            '修改名稱' +
+          '</button>' +
+          '<button type="button" class="work-delete-btn"' +
+            ' data-id="' + escapeAttribute(work.id) + '"' +
+            ' data-path="' + escapeAttribute(work.storage_path) + '">' +
+            '刪除' +
+          '</button>' +
+        '</div>' +
+      '</div>'
     ).join("");
   }
 
@@ -1123,17 +1128,28 @@ orderStatusFilter.addEventListener(
     if (editBtn) {
       const id = editBtn.dataset.id;
       const oldTitle = editBtn.dataset.title || "";
+      if (!id) {
+        alert("找不到作品資料 ID，請重新整理後再試。");
+        return;
+      }
+
       const newTitle = prompt("輸入新的作品名稱：", oldTitle);
       if (newTitle === null) return;
+
       const title = newTitle.trim();
       if (!title || title === oldTitle) return;
 
-      const { error } = await supabaseClient.from("works").update({ title }).eq("id", id);
+      const { error } = await supabaseClient
+        .from("works")
+        .update({ title })
+        .eq("id", id);
+
       if (error) {
         console.error(error);
         alert("修改失敗：" + error.message);
         return;
       }
+
       alert("作品名稱已修改。");
       await loadWorks();
       return;
@@ -1142,22 +1158,50 @@ orderStatusFilter.addEventListener(
     if (deleteBtn) {
       const id = deleteBtn.dataset.id;
       const path = deleteBtn.dataset.path;
-      const title = deleteBtn.closest(".work-item")?.querySelector("strong")?.textContent || "這個作品";
-      if (!confirm('確定要刪除「' + title + '」嗎？\n刪除後無法復原。')) return;
+      const title =
+        deleteBtn.closest(".work-item")?.querySelector("strong")?.textContent ||
+        "這個作品";
 
-      const { error: storageError } = await supabaseClient.storage.from("works").remove([path]);
+      if (!id || !path) {
+        alert("找不到作品資料，請重新整理後再試。");
+        return;
+      }
+
+      if (!confirm('確定要刪除「' + title + '」嗎？\n刪除後無法復原。')) {
+        return;
+      }
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = "刪除中……";
+
+      // 先刪除 Storage 實際檔案
+      const { error: storageError } =
+        await supabaseClient.storage.from("works").remove([path]);
+
       if (storageError) {
         console.error(storageError);
         alert("刪除檔案失敗：" + storageError.message);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "刪除";
         return;
       }
 
-      const { error: dbError } = await supabaseClient.from("works").delete().eq("id", id);
+      // Storage 成功後，再刪除 works 資料表紀錄
+      const { error: dbError } =
+        await supabaseClient.from("works").delete().eq("id", id);
+
       if (dbError) {
         console.error(dbError);
-        alert("檔案已刪除，但資料庫紀錄刪除失敗：" + dbError.message);
+        alert(
+          "檔案已從 Storage 刪除，但資料庫紀錄刪除失敗：" +
+          dbError.message +
+          "\n請把這個錯誤截圖給我。"
+        );
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "刪除";
         return;
       }
+
       alert("作品已刪除。");
       await loadWorks();
     }
