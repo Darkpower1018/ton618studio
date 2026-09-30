@@ -1121,56 +1121,45 @@ orderStatusFilter.addEventListener(
     const deleteBtn = event.target.closest(".work-delete-btn");
 
     if (editBtn) {
-      const category = editBtn.dataset.category;
-      const oldName = editBtn.dataset.name;
+      const id = editBtn.dataset.id;
       const oldTitle = editBtn.dataset.title || "";
       const newTitle = prompt("輸入新的作品名稱：", oldTitle);
       if (newTitle === null) return;
       const title = newTitle.trim();
       if (!title || title === oldTitle) return;
 
-      const separator = oldName.indexOf("__");
-      const oldEncoded = separator >= 0 ? oldName.slice(separator + 2) : oldName;
-      const dot = oldEncoded.lastIndexOf(".");
-      const extension = dot >= 0 ? oldEncoded.slice(dot).toLowerCase() : "";
-      const titleBase64 = btoa(unescape(encodeURIComponent(title)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/g, "");
-      const newName = (separator >= 0 ? oldName.slice(0, separator + 2) : crypto.randomUUID() + "__") + titleBase64 + extension;
-
-      try {
-        const { error } = await supabaseClient.storage.from("works").move(
-          category + "/" + oldName,
-          category + "/" + newName
-        );
-        if (error) throw error;
-        alert("作品名稱已修改。");
-        await loadWorks();
-      } catch (error) {
+      const { error } = await supabaseClient.from("works").update({ title }).eq("id", id);
+      if (error) {
         console.error(error);
-        alert("修改失敗：" + (error.message || error));
+        alert("修改失敗：" + error.message);
+        return;
       }
+      alert("作品名稱已修改。");
+      await loadWorks();
       return;
     }
 
     if (deleteBtn) {
-      const category = deleteBtn.dataset.category;
-      const name = deleteBtn.dataset.name;
+      const id = deleteBtn.dataset.id;
+      const path = deleteBtn.dataset.path;
       const title = deleteBtn.closest(".work-item")?.querySelector("strong")?.textContent || "這個作品";
       if (!confirm('確定要刪除「' + title + '」嗎？\n刪除後無法復原。')) return;
 
-      try {
-        const { error } = await supabaseClient.storage.from("works").remove([
-          category + "/" + name
-        ]);
-        if (error) throw error;
-        alert("作品已刪除。");
-        await loadWorks();
-      } catch (error) {
-        console.error(error);
-        alert("刪除失敗：" + (error.message || error));
+      const { error: storageError } = await supabaseClient.storage.from("works").remove([path]);
+      if (storageError) {
+        console.error(storageError);
+        alert("刪除檔案失敗：" + storageError.message);
+        return;
       }
+
+      const { error: dbError } = await supabaseClient.from("works").delete().eq("id", id);
+      if (dbError) {
+        console.error(dbError);
+        alert("檔案已刪除，但資料庫紀錄刪除失敗：" + dbError.message);
+        return;
+      }
+      alert("作品已刪除。");
+      await loadWorks();
     }
   });
 
@@ -1295,22 +1284,25 @@ orderStatusFilter.addEventListener(
         },
 
         onSuccess: async () => {
-          // TUS 完成後再用 Storage API 明確寫入 MIME，避免部分瀏覽器/
-          // Storage metadata 導致音樂檔無法被 <audio> 正確辨識。
           const finalMime = category === "music"
             ? (expectedAudioMime || file.type || "application/octet-stream")
             : (file.type || "application/octet-stream");
 
-          const { error: metadataError } = await supabaseClient.storage
+          const { error: dbError } = await supabaseClient
             .from("works")
-            .update(path, file, {
-              contentType: finalMime,
-              cacheControl: "3600",
-              upsert: true
+            .insert({
+              title,
+              category,
+              storage_path: path,
+              file_name: file.name,
+              extension: extension.replace(/^\./, ""),
+              mime_type: finalMime
             });
 
-          if (metadataError) {
-            console.warn("作品已上傳，但 MIME metadata 更新失敗：", metadataError);
+          if (dbError) {
+            console.error(dbError);
+            await supabaseClient.storage.from("works").remove([path]);
+            throw new Error("作品資料建立失敗：" + dbError.message);
           }
 
           titleInput.value = "";
