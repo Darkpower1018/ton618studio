@@ -7,6 +7,7 @@
   <title>能量工作室｜管理後台</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 
   <style>
     * {
@@ -656,7 +657,7 @@
         <option value="music">音樂作品</option>
       </select>
       <input type="file" id="newWorkFile" accept="video/*,audio/*,image/*">
-      <small>影片可上傳 MP4 / MOV / WebM；音樂可上傳 MP3 / WAV；也可以上傳作品封面圖片。上傳後會直接出現在網站「作品」區。</small>
+      <small>影片可上傳 MP4 / MOV / WebM；音樂可上傳 MP3 / WAV；也可以上傳作品封面圖片。大型檔案會使用可續傳上傳，完成後會直接出現在網站「作品」區。</small>
       <button class="primary-btn" type="button" id="uploadWorkBtn">＋ 上傳作品</button>
       <div class="status" id="workUploadStatus"></div>
     </div>
@@ -1092,43 +1093,104 @@ orderStatusFilter.addEventListener(
     const title = titleInput.value.trim();
     const file = fileInput.files?.[0];
     const category = categoryInput.value;
+
     if (!title) { alert("請輸入作品名稱。"); return; }
     if (!file) { alert("請選擇作品檔案。"); return; }
-    if (file.size > 500 * 1024 * 1024) { alert("作品檔案不能超過 500 MB。"); return; }
+
     const allowedVideo = ["video/mp4", "video/webm", "video/quicktime"];
     const allowedAudio = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/wave"];
     const allowedImage = ["image/jpeg", "image/png", "image/webp"];
-    const allowed = category === "video" ? [...allowedVideo, ...allowedImage] : [...allowedAudio, ...allowedImage];
+    const allowed = category === "video"
+      ? [...allowedVideo, ...allowedImage]
+      : [...allowedAudio, ...allowedImage];
+
     if (!allowed.includes(file.type)) {
-      alert(category === "video" ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。" : "音樂作品請上傳 MP3、WAV 或作品封面圖片。");
+      alert(category === "video"
+        ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。"
+        : "音樂作品請上傳 MP3、WAV 或作品封面圖片。");
       return;
     }
-    // Supabase Storage object keys should stay ASCII-safe.
-    // Store the display title as URL-safe Base64 instead of raw Chinese characters.
+
+    // Supabase Storage 的 Resumable Upload 使用 TUS。
+    // 作品標題仍以 URL-safe Base64 儲存，避免中文出現在 object key。
     const titleBase64 = btoa(unescape(encodeURIComponent(title)))
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/g, "");
+
     const extension = file.name.includes(".")
       ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase().replace(/[^a-z0-9.]/g, "")
       : "";
+
     const path = category + "/" + crypto.randomUUID() + "__" + titleBase64 + extension;
+
     workUploadBtn.disabled = true;
-    workUploadBtn.textContent = "上傳中……";
-    workUploadStatus.textContent = "正在上傳作品，請不要關閉頁面。";
-    const { error } = await supabaseClient.storage.from("works").upload(path, file, {
-      cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
-    });
-    if (error) {
+    workUploadBtn.textContent = "準備上傳……";
+    workUploadStatus.textContent = "正在建立大型檔案上傳連線……";
+
+    try {
+      // 使用 Supabase 官方建議的 TUS Resumable Upload。
+      // 需要目前登入管理員的 access token。
+      const { data: sessionData, error: sessionError } =
+        await supabaseClient.auth.getSession();
+
+      if (sessionError || !sessionData.session) {
+        throw new Error("登入工作階段已失效，請重新登入後再試。");
+      }
+
+      const projectId = SUPABASE_URL.replace("https://", "").split(".")[0];
+      const uploadUrl = "https://" + projectId + ".storage.supabase.co/storage/v1/upload/resumable";
+
+      const upload = new tus.Upload(file, {
+        endpoint: uploadUrl,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: "Bearer " + sessionData.session.access_token,
+          "x-upsert": "false"
+        },
+        metadata: {
+          bucketName: "works",
+          objectName: path,
+          contentType: file.type || "application/octet-stream",
+          cacheControl: "3600"
+        },
+        chunkSize: 6 * 1024 * 1024,
+
+        onError: (error) => {
+          console.error(error);
+          workUploadStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
+          workUploadBtn.disabled = false;
+          workUploadBtn.textContent = "＋ 上傳作品";
+        },
+
+        onProgress: (bytesUploaded, bytesTotal) => {
+          const percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
+          const uploadedMB = (bytesUploaded / 1024 / 1024).toFixed(1);
+          const totalMB = (bytesTotal / 1024 / 1024).toFixed(1);
+
+          workUploadBtn.textContent = "上傳中 " + percentage + "%";
+          workUploadStatus.textContent =
+            "正在上傳 " + uploadedMB + " MB / " + totalMB + " MB";
+        },
+
+        onSuccess: async () => {
+          titleInput.value = "";
+          fileInput.value = "";
+          workUploadStatus.textContent = "✓ 作品已上傳，網站會自動更新。";
+          workUploadBtn.disabled = false;
+          workUploadBtn.textContent = "＋ 上傳作品";
+          await loadWorks();
+        }
+      });
+
+      workUploadStatus.textContent = "正在開始上傳……";
+      upload.start();
+    } catch (error) {
       console.error(error);
-      workUploadStatus.textContent = "✕ 上傳失敗：" + error.message;
-      workUploadBtn.disabled = false; workUploadBtn.textContent = "＋ 上傳作品";
-      return;
+      workUploadStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
+      workUploadBtn.disabled = false;
+      workUploadBtn.textContent = "＋ 上傳作品";
     }
-    titleInput.value = ""; fileInput.value = "";
-    workUploadStatus.textContent = "✓ 作品已上傳，網站會自動更新。";
-    await loadWorks();
-    workUploadBtn.disabled = false; workUploadBtn.textContent = "＋ 上傳作品";
   });
 
   // =========================
