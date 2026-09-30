@@ -1106,8 +1106,8 @@ orderStatusFilter.addEventListener(
     // Supabase Storage object keys should stay ASCII-safe.
     // Store the display title as URL-safe Base64 instead of raw Chinese characters.
     const titleBase64 = btoa(unescape(encodeURIComponent(title)))
-      .replace(/\\+/g, "-")
-      .replace(/\\//g, "_")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
       .replace(/=+$/g, "");
     const extension = file.name.includes(".")
       ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase().replace(/[^a-z0-9.]/g, "")
