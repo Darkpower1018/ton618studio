@@ -378,6 +378,32 @@
     .work-upload select:focus, .work-upload input[type="file"]:focus { border-color:rgba(164,103,255,0.6); }
     .work-upload small { color:#777080; line-height:1.6; }
     .work-list { display:grid; gap:10px; }
+    .work-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .work-actions button {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0b0812;
+      color: #f5f1fb;
+      border-radius: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .work-actions button:hover {
+      border-color: rgba(164,103,255,0.5);
+      background: #151020;
+    }
+
+    .work-delete-btn {
+      color: #ff9ba5 !important;
+    }
+
     .work-item {
       display:flex; justify-content:space-between; align-items:center; gap:15px;
       padding:14px 16px; border:1px solid rgba(255,255,255,0.08);
@@ -1082,9 +1108,71 @@ orderStatusFilter.addEventListener(
     }
     workList.innerHTML = rows.map(work =>
       '<div class="work-item"><div><strong>' + escapeHtml(work.title) + '</strong><span>' +
-      (work.category === "video" ? "影片作品" : "音樂作品") + '</span></div></div>'
+      (work.category === "video" ? "影片作品" : "音樂作品") + '</span></div>' +
+      '<div class="work-actions">' +
+      '<button type="button" class="work-edit-btn" data-category="' + escapeAttribute(work.category) + '" data-name="' + escapeAttribute(work.name) + '" data-title="' + escapeAttribute(work.title) + '">修改名稱</button>' +
+      '<button type="button" class="work-delete-btn" data-category="' + escapeAttribute(work.category) + '" data-name="' + escapeAttribute(work.name) + '">刪除</button>' +
+      '</div></div>'
     ).join("");
   }
+
+  document.addEventListener("click", async event => {
+    const editBtn = event.target.closest(".work-edit-btn");
+    const deleteBtn = event.target.closest(".work-delete-btn");
+
+    if (editBtn) {
+      const category = editBtn.dataset.category;
+      const oldName = editBtn.dataset.name;
+      const oldTitle = editBtn.dataset.title || "";
+      const newTitle = prompt("輸入新的作品名稱：", oldTitle);
+      if (newTitle === null) return;
+      const title = newTitle.trim();
+      if (!title || title === oldTitle) return;
+
+      const separator = oldName.indexOf("__");
+      const oldEncoded = separator >= 0 ? oldName.slice(separator + 2) : oldName;
+      const dot = oldEncoded.lastIndexOf(".");
+      const extension = dot >= 0 ? oldEncoded.slice(dot).toLowerCase() : "";
+      const titleBase64 = btoa(unescape(encodeURIComponent(title)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+      const newName = (separator >= 0 ? oldName.slice(0, separator + 2) : crypto.randomUUID() + "__") + titleBase64 + extension;
+
+      try {
+        const { error } = await supabaseClient.storage.from("works").move(
+          category + "/" + oldName,
+          category + "/" + newName
+        );
+        if (error) throw error;
+        alert("作品名稱已修改。");
+        await loadWorks();
+      } catch (error) {
+        console.error(error);
+        alert("修改失敗：" + (error.message || error));
+      }
+      return;
+    }
+
+    if (deleteBtn) {
+      const category = deleteBtn.dataset.category;
+      const name = deleteBtn.dataset.name;
+      const title = deleteBtn.closest(".work-item")?.querySelector("strong")?.textContent || "這個作品";
+      if (!confirm('確定要刪除「' + title + '」嗎？\n刪除後無法復原。')) return;
+
+      try {
+        const { error } = await supabaseClient.storage.from("works").remove([
+          category + "/" + name
+        ]);
+        if (error) throw error;
+        alert("作品已刪除。");
+        await loadWorks();
+      } catch (error) {
+        console.error(error);
+        alert("刪除失敗：" + (error.message || error));
+      }
+    }
+  });
 
   workUploadBtn?.addEventListener("click", async () => {
     const titleInput = document.getElementById("newWorkTitle");
