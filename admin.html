@@ -1265,6 +1265,8 @@ orderStatusFilter.addEventListener(
           authorization: "Bearer " + sessionData.session.access_token,
           "x-upsert": "false"
         },
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
         metadata: {
           bucketName: "works",
           objectName: path,
@@ -1293,6 +1295,24 @@ orderStatusFilter.addEventListener(
         },
 
         onSuccess: async () => {
+          // TUS 完成後再用 Storage API 明確寫入 MIME，避免部分瀏覽器/
+          // Storage metadata 導致音樂檔無法被 <audio> 正確辨識。
+          const finalMime = category === "music"
+            ? (expectedAudioMime || file.type || "application/octet-stream")
+            : (file.type || "application/octet-stream");
+
+          const { error: metadataError } = await supabaseClient.storage
+            .from("works")
+            .update(path, file, {
+              contentType: finalMime,
+              cacheControl: "3600",
+              upsert: true
+            });
+
+          if (metadataError) {
+            console.warn("作品已上傳，但 MIME metadata 更新失敗：", metadataError);
+          }
+
           titleInput.value = "";
           fileInput.value = "";
           workUploadStatus.textContent = "✓ 作品已上傳，網站會自動更新。";
