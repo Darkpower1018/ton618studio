@@ -534,7 +534,12 @@ async function loadWorks() {
       const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
       const extension = dot >= 0 ? encodedTitle.slice(dot + 1).toLowerCase() : "";
       let title = titlePart;
-      try { title = decodeURIComponent(titlePart); } catch (_) {}
+      try {
+        const padded = titlePart.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((titlePart.length + 3) % 4);
+        title = decodeURIComponent(escape(atob(padded)));
+      } catch (_) {
+        try { title = decodeURIComponent(titlePart); } catch (_) {}
+      }
       const { data: publicData } = supabaseClient.storage.from("works").getPublicUrl(category + "/" + file.name);
       rows.push({ category, title, extension, url: publicData.publicUrl });
     });
