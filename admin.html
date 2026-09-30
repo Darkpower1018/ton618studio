@@ -578,20 +578,22 @@
 
         <section class="service-manager">
 
-      <h2>服務管理</h2>
+      <h2>服務與分類管理</h2>
 
           <div class="add-service">
 
   <input
     type="text"
     id="newServiceName"
-    placeholder="服務名稱，例如：短影音剪輯"
+    list="serviceCategoryList"
+    placeholder="服務分類，例如：短影音剪輯 / 編曲 / 音樂發行"
   >
+  <datalist id="serviceCategoryList"></datalist>
 
   <input
     type="text"
     id="newPackageName"
-    placeholder="套餐名稱，例如：四部"
+    placeholder="套餐名稱，例如：一部進階 / LANDR 單曲發行"
   >
 
   <input
@@ -609,7 +611,7 @@
   ></textarea>
 
   <button id="addServiceBtn">
-    ＋ 新增服務
+    ＋ 新增服務 / 分類
   </button>
 
 </div>
@@ -897,7 +899,6 @@ orderStatusFilter.addEventListener(
       </div>
     `;
 
-
     const {
       data,
       error
@@ -908,98 +909,91 @@ orderStatusFilter.addEventListener(
         ascending: true
       });
 
-
     if (error) {
-
       console.error(error);
-
       serviceList.innerHTML = `
         <div class="card empty">
           無法載入服務。<br><br>
           ${escapeHtml(error.message)}
         </div>
       `;
-
       return;
     }
 
+    const categories = [...new Set((data || [])
+      .map(item => item.service)
+      .filter(Boolean))];
+
+    const categoryList = document.getElementById("serviceCategoryList");
+    if (categoryList) {
+      categoryList.innerHTML = categories
+        .map(category => `<option value="${escapeAttribute(category)}"></option>`)
+        .join("");
+    }
 
     if (!data || data.length === 0) {
-
       serviceList.innerHTML = `
         <div class="card empty">
-          目前沒有服務。
+          目前沒有服務。<br><br>
+          你可以直接新增第一個服務分類。
         </div>
       `;
-
       return;
     }
-
 
     serviceList.innerHTML = data
       .map(service => `
         <div class="service-item">
-
           <div>
-            <strong>
-              ${escapeHtml(service.service)}
-            </strong>
+            <strong>${escapeHtml(service.service)}</strong>
+            <span>${escapeHtml(service.package)}</span>
 
-            <span>
-              ${escapeHtml(service.package)}
-            </span>
-
-<textarea
-  class="service-description-input"
-  data-service-id="${escapeAttribute(service.id)}"
-  rows="2"
-  placeholder="服務描述"
->${escapeHtml(service.description || "")}</textarea>
-            
+            <textarea
+              class="service-description-input"
+              data-service-id="${escapeAttribute(service.id)}"
+              rows="2"
+              placeholder="服務描述"
+            >${escapeHtml(service.description || "")}</textarea>
           </div>
 
-     <div class="service-price-edit">
+          <div class="service-price-edit">
+            <span>HKD $</span>
+            <input
+              type="number"
+              class="service-price-input"
+              data-service-id="${escapeAttribute(service.id)}"
+              value="${escapeAttribute(String(service.price))}"
+              min="0"
+              step="1"
+            >
+          </div>
 
-  <span>HKD $</span>
+          <button
+            class="save-price-btn"
+            data-service-id="${escapeAttribute(service.id)}"
+          >
+            儲存
+          </button>
 
-  <input
-    type="number"
-    class="service-price-input"
-    data-service-id="${escapeAttribute(service.id)}"
-    value="${escapeAttribute(String(service.price))}"
-    min="0"
-    step="1"
-  >
+          <button
+            class="toggle-service-btn"
+            data-service-id="${escapeAttribute(service.id)}"
+            data-active="${service.active}"
+          >
+            ${service.active ? "停用" : "啟用"}
+          </button>
 
-</div>
-
-<button
-  class="save-price-btn"
-  data-service-id="${escapeAttribute(service.id)}"
->
-  儲存
-</button>
-
-<button
-  class="toggle-service-btn"
-  data-service-id="${escapeAttribute(service.id)}"
-  data-active="${service.active}"
->
-  ${service.active ? "停用" : "啟用"}
-</button>
-
-<button
-  class="delete-service-btn"
-  data-service-id="${escapeAttribute(service.id)}"
->
-  刪除
-</button>
-
+          <button
+            class="delete-service-btn"
+            data-service-id="${escapeAttribute(service.id)}"
+          >
+            刪除
+          </button>
         </div>
       `)
       .join("");
-
   }
+
 
   // =========================
   // 訂單卡片
@@ -1277,7 +1271,7 @@ document.addEventListener("change", async (event) => {
       alert("新增服務失敗：" + error.message);
 
       button.disabled = false;
-      button.textContent = "＋ 新增服務";
+      button.textContent = "＋ 新增服務 / 分類";
 
       return;
     }
