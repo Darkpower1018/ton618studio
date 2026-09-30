@@ -270,7 +270,14 @@ async function setupPaymentMethods(){
       }
     });
 
-    if(cardFields.isEligible()){
+    const cardFieldsEligible=cardFields.isEligible();
+    const cardFieldsDiagnostic=document.getElementById("cardFieldsDiagnostic");
+    cardFieldsDiagnostic.textContent=cardFieldsEligible
+      ? "Card Fields：Eligible（可在本站直接輸入信用卡）"
+      : "Card Fields：Not eligible（目前未提供本站直接輸入信用卡欄位）";
+    cardFieldsDiagnostic.className="small "+(cardFieldsEligible ? "success" : "error");
+
+    if(cardFieldsEligible){
       document.getElementById("cardMethod").classList.remove("hidden");
       cardFields.NameField().render("#cardName");
       cardFields.NumberField().render("#cardNumber");
@@ -569,6 +576,8 @@ async function lookup(){
               <p class="small">直接選擇信用卡付款，不需要先進入 PayPal 再返回。</p>
               <div id="cardFundingButton" class="paypal-buttons"></div>
             </div>
+
+            <div id="cardFieldsDiagnostic" class="small">Card Fields：正在檢查資格……</div>
 
             <div id="cardMethod" class="payment-method hidden">
               <h3>信用卡 / Debit Card</h3>
