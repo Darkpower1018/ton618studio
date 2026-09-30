@@ -1225,40 +1225,61 @@ orderStatusFilter.addEventListener(
           gunsyncVideoStatus.textContent = "正在上傳 " + (uploaded / 1024 / 1024).toFixed(1) + " MB / " + (total / 1024 / 1024).toFixed(1) + " MB";
         },
         onSuccess: async () => {
-          const { data: existing } = await supabaseClient
-            .from("works")
-            .select("id,storage_path")
-            .eq("category", "gunsync")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          gunsyncVideoStatus.textContent = "100% — 正在完成影片資料設定……";
+          gunsyncVideoBtn.textContent = "處理中……";
 
-          const { error: dbError } = await supabaseClient
-            .from("works")
-            .insert({
-              title: "GUNSYNC 展示影片",
-              category: "gunsync",
-              storage_path: path,
-              file_name: file.name,
-              extension: ext.replace(".", ""),
-              mime_type: file.type || (ext === ".mp4" ? "video/mp4" : ext === ".mov" ? "video/quicktime" : "video/webm")
-            });
+          try {
+            const { data: existing, error: existingError } = await supabaseClient
+              .from("works")
+              .select("id,storage_path")
+              .eq("category", "gunsync")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-          if (dbError) {
-            await supabaseClient.storage.from("works").remove([path]);
-            throw new Error("影片資料建立失敗：" + dbError.message);
+            if (existingError) {
+              throw new Error("讀取舊影片資料失敗：" + existingError.message);
+            }
+
+            const { error: dbError } = await supabaseClient
+              .from("works")
+              .insert({
+                title: "GUNSYNC 展示影片",
+                category: "gunsync",
+                storage_path: path,
+                file_name: file.name,
+                extension: ext.replace(".", ""),
+                mime_type: file.type || (ext === ".mp4" ? "video/mp4" : ext === ".mov" ? "video/quicktime" : "video/webm")
+              });
+
+            if (dbError) {
+              await supabaseClient.storage.from("works").remove([path]);
+              throw new Error("影片資料建立失敗：" + dbError.message);
+            }
+
+            if (existing?.storage_path) {
+              await supabaseClient.storage.from("works").remove([existing.storage_path]);
+              const { error: deleteError } = await supabaseClient
+                .from("works")
+                .delete()
+                .eq("id", existing.id);
+
+              if (deleteError) {
+                console.warn("舊影片資料刪除失敗：", deleteError);
+              }
+            }
+
+            fileInput.value = "";
+            gunsyncVideoStatus.textContent = "✓ 影片已成功上傳並發布。";
+            gunsyncVideoBtn.disabled = false;
+            gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
+            await loadGunsyncVideo();
+          } catch (error) {
+            console.error("GUNSYNC 完成階段錯誤：", error);
+            gunsyncVideoStatus.textContent = "✕ 影片已傳到 Storage，但資料庫設定失敗：" + (error?.message || error);
+            gunsyncVideoBtn.disabled = false;
+            gunsyncVideoBtn.textContent = "重新處理影片";
           }
-
-          if (existing?.storage_path) {
-            await supabaseClient.storage.from("works").remove([existing.storage_path]);
-            await supabaseClient.from("works").delete().eq("id", existing.id);
-          }
-
-          fileInput.value = "";
-          gunsyncVideoStatus.textContent = "✓ GUNSYNC 展示影片已更新。";
-          gunsyncVideoBtn.disabled = false;
-          gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
-          await loadGunsyncVideo();
         }
       });
 
