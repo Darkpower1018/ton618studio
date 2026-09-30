@@ -482,7 +482,7 @@ async function loadServices() {
         <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""}">
           <div class="service-head">
             <div>
-              <div class="num">${String(categoryIndex + 1).padStart(2, "0")} — ${m.code}</div>
+              <div class="num">${m.code}</div>
               <div class="icon">${m.icon}</div>
               <h3>${escapeHtml(category)}</h3>
               <p class="muted">${escapeHtml(categoryDescription)}</p>
