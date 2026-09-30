@@ -555,7 +555,21 @@ async function loadWorks() {
     let media = '<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">查看作品 ↗</a>';
     if (imageExt.includes(work.extension)) media = '<img class="work-media" src="' + escapeAttribute(work.url) + '" alt="' + escapeAttribute(work.title) + '" loading="lazy">';
     else if (videoExt.includes(work.extension)) media = '<video class="work-media" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></video>';
-    else if (audioExt.includes(work.extension)) media = '<audio class="work-media audio" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></audio>';
+    else if (audioExt.includes(work.extension)) {
+      const audioType = {
+        mp3: "audio/mpeg",
+        wav: "audio/wav",
+        m4a: "audio/mp4",
+        ogg: "audio/ogg",
+        aac: "audio/aac",
+        flac: "audio/flac"
+      }[work.extension] || "audio/*";
+      media =
+        '<audio class="work-media audio" controls preload="metadata">' +
+        '<source src="' + escapeAttribute(work.url) + '" type="' + audioType + '">' +
+        '你的瀏覽器無法播放這個音樂檔案。<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">開啟檔案 ↗</a>' +
+        '</audio>';
+    }
     return '<div class="work">' + media + '<div class="work-info"><span>' + (work.category === "video" ? "VIDEO" : "MUSIC") + '</span><h3>' + escapeHtml(work.title) + '</h3></div></div>';
   }).join("");
 }
