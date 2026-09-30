@@ -350,8 +350,25 @@
       line-height: 1.6;
     }
 
-    .category-description-input:focus {
+    .category-description-input:focus,
+    .category-tags-input:focus {
       border-color: rgba(164,103,255,0.6);
+    }
+
+    .category-tags-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.28);
+      color: #f4f1fa;
+      padding: 12px 14px;
+      border-radius: 10px;
+      outline: none;
+      font: inherit;
+    }
+
+    .category-tags-input::placeholder {
+      color: #777080;
     }
 
     .save-category-description-btn {
@@ -1079,11 +1096,17 @@ orderStatusFilter.addEventListener(
               rows="3"
               placeholder="輸入這個分類在網站上顯示的簡介……"
             >${escapeHtml(service.category_description || "")}</textarea>
+            <input
+              class="category-tags-input"
+              data-category="${escapeAttribute(service.service)}"
+              value="${escapeAttribute(service.category_tags || "")}"
+              placeholder="輸入小 Tag，用逗號分隔，例如：SHORTS, TIKTOK, REELS"
+            >
             <button
               type="button"
               class="save-category-description-btn"
               data-category="${escapeAttribute(service.service)}"
-            >儲存分類簡介</button>
+            >儲存分類簡介與小 Tag</button>
           </div>
         ` : ""}
 
@@ -1754,15 +1777,21 @@ document.addEventListener("change", async (event) => {
     const input = document.querySelector(
       `.category-description-input[data-category="${CSS.escape(category)}"]`
     );
+    const tagsInput = document.querySelector(
+      `.category-tags-input[data-category="${CSS.escape(category)}"]`
+    );
 
-    if (!category || !input) return;
+    if (!category || !input || !tagsInput) return;
 
     categoryButton.disabled = true;
     categoryButton.textContent = "儲存中……";
 
     const { error } = await supabaseClient
       .from("services")
-      .update({ category_description: input.value.trim() })
+      .update({
+        category_description: input.value.trim(),
+        category_tags: tagsInput.value.trim()
+      })
       .eq("service", category);
 
     if (error) {
