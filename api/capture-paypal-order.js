@@ -1,3 +1,5 @@
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+
 async function getPayPalAccessToken() {
   const credentials = Buffer.from(
     `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
     }
 
     const orderResponse = await supabaseRequest(
-      `/rest/v1/orders?order_number=eq.${encodeURIComponent(order_number)}&select=order_number,payment_status,stripe_session_id`
+      `/rest/v1/orders?order_number=eq.${encodeURIComponent(order_number)}&select=order_number,payment_status,stripe_session_id,service,package,price,customer_name,contact_type,contact`
     );
 
     if (!orderResponse.ok) {
@@ -96,6 +98,36 @@ export default async function handler(req, res) {
 
     if (captureData.status !== "COMPLETED") {
       return res.status(400).json({ error: "PayPal 尚未完成付款。" });
+    }
+
+    if (DISCORD_WEBHOOK_URL) {
+      const discordPayload = {
+        username: "能量工作室",
+        embeds: [{
+          title: "💰 付款成功",
+          color: 0x58c77b,
+          fields: [
+            { name: "訂單編號", value: order.order_number || "未設定", inline: true },
+            { name: "服務", value: order.service || "未設定", inline: true },
+            { name: "套餐", value: order.package || "未設定", inline: true },
+            { name: "價格", value: `HKD ${order.price}`, inline: true },
+            { name: "客戶", value: order.customer_name || "未設定", inline: true },
+            { name: "聯絡方式", value: `${order.contact_type || ""} / ${order.contact || ""}`, inline: true },
+            { name: "付款狀態", value: "✓ 已付款", inline: true }
+          ],
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      try {
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(discordPayload)
+        });
+      } catch (discordError) {
+        console.error("Discord payment notification failed:", discordError);
+      }
     }
 
     const updateResponse = await supabaseRequest(
