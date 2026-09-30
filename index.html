@@ -553,7 +553,7 @@ async function loadWorks() {
     } else if (videoExt.includes(ext)) {
       media = '<video class="work-media" controls preload="metadata" playsinline src="' + escapeAttribute(url) + '"></video>';
     } else if (audioExt.includes(ext)) {
-      media = '<audio class="work-media audio" controls preload="metadata"><source src="' + escapeAttribute(url) + '" type="' + escapeAttribute(mime) + '">你的瀏覽器無法播放這個音樂檔案。<a href="' + escapeAttribute(url) + '" target="_blank" rel="noopener noreferrer">開啟檔案 ↗</a></audio>';
+      media = '<audio class="work-media audio" controls preload="metadata" src="' + escapeAttribute(url) + '">你的瀏覽器無法播放這個音樂檔案。<a href="' + escapeAttribute(url) + '" target="_blank" rel="noopener noreferrer">開啟檔案 ↗</a></audio>';
     }
     return '<div class="work">' + media + '<div class="work-info"><span>' + (work.category === "video" ? "VIDEO" : "MUSIC") + '</span><h3>' + escapeHtml(work.title) + '</h3></div></div>';
   }).join("");
