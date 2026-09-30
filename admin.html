@@ -683,7 +683,7 @@
         <option value="music">音樂作品</option>
       </select>
       <input type="file" id="newWorkFile" accept="video/*,audio/*,image/*">
-      <small>影片可上傳 MP4 / MOV / WebM；音樂可上傳 MP3 / WAV；也可以上傳作品封面圖片。大型檔案會使用可續傳上傳，完成後會直接出現在網站「作品」區。</small>
+      <small>影片可上傳 MP4 / MOV / WebM；音樂可上傳 MP3 / WAV / M4A / OGG / AAC / FLAC / MP4；也可以上傳作品封面圖片。大型檔案會使用可續傳上傳，完成後會直接出現在網站「作品」區。</small>
       <button class="primary-btn" type="button" id="uploadWorkBtn">＋ 上傳作品</button>
       <div class="status" id="workUploadStatus"></div>
     </div>
@@ -1219,7 +1219,7 @@ orderStatusFilter.addEventListener(
     if (!file) { alert("請選擇作品檔案。"); return; }
 
     const allowedVideo = ["video/mp4", "video/webm", "video/quicktime"];
-    const allowedAudio = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave", "audio/mp4", "audio/x-m4a", "audio/ogg"];
+    const allowedAudio = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave", "audio/mp4", "audio/x-m4a", "audio/ogg", "audio/aac", "audio/flac", "video/mp4"];
     const allowedImage = ["image/jpeg", "image/png", "image/webp"];
 
     const fileNameLower = file.name.toLowerCase();
@@ -1231,7 +1231,10 @@ orderStatusFilter.addEventListener(
       ".mp3": "audio/mpeg",
       ".wav": "audio/wav",
       ".m4a": "audio/mp4",
-      ".ogg": "audio/ogg"
+      ".ogg": "audio/ogg",
+      ".aac": "audio/aac",
+      ".flac": "audio/flac",
+      ".mp4": "video/mp4"
     };
 
     const expectedAudioMime =
@@ -1257,7 +1260,7 @@ orderStatusFilter.addEventListener(
     )) {
       alert(category === "video"
         ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。"
-        : "音樂作品請上傳 MP3、WAV、M4A、OGG 或作品封面圖片。");
+        : "音樂作品請上傳 MP3、WAV、M4A、OGG、AAC、FLAC、MP4 或作品封面圖片。");
       return;
     }
 
