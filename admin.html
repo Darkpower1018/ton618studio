@@ -235,6 +235,135 @@
   border-color: rgba(164,103,255,0.6);
 }
     
+
+    /* 服務管理：維持 TON618 暗黑風格 */
+    .service-manager {
+      margin-top: 10px;
+    }
+
+    .add-service {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .add-service input,
+    .add-service textarea,
+    .service-description-input,
+    .service-price-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.28);
+      color: #f4f1fa;
+      padding: 12px 14px;
+      border-radius: 10px;
+      outline: none;
+      font: inherit;
+    }
+
+    .add-service textarea,
+    .service-description-input {
+      resize: vertical;
+      min-height: 74px;
+    }
+
+    .add-service input::placeholder,
+    .add-service textarea::placeholder,
+    .service-description-input::placeholder {
+      color: #777080;
+    }
+
+    .add-service input:focus,
+    .add-service textarea:focus,
+    .service-description-input:focus,
+    .service-price-input:focus {
+      border-color: rgba(164,103,255,0.6);
+      background: rgba(255,255,255,0.045);
+    }
+
+    .add-service button,
+    .save-price-btn,
+    .toggle-service-btn,
+    .delete-service-btn {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #f4f1fa;
+      padding: 10px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .add-service button:hover,
+    .save-price-btn:hover,
+    .toggle-service-btn:hover,
+    .delete-service-btn:hover {
+      background: rgba(164,103,255,0.12);
+      border-color: rgba(164,103,255,0.35);
+    }
+
+    .service-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .service-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 12px;
+      align-items: center;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.18);
+      border-radius: 15px;
+    }
+
+    .service-item > div:first-child {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .service-item strong {
+      color: #f4f1fa;
+      font-size: 16px;
+    }
+
+    .service-item span {
+      color: #9b96a8;
+      font-size: 13px;
+    }
+
+    .service-price-edit {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .service-price-edit > span {
+      color: #9b96a8;
+      white-space: nowrap;
+    }
+
+    .service-price-input {
+      width: 130px;
+    }
+
+    @media (max-width: 650px) {
+      .service-item {
+        grid-template-columns: 1fr;
+      }
+
+      .service-price-edit {
+        width: 100%;
+      }
+
+      .service-price-input {
+        width: 100%;
+      }
+    }
+
     .orders {
       display: grid;
       gap: 16px;
