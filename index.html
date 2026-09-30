@@ -492,7 +492,7 @@ async function loadServices() {
       categories.map(category =>
         `<a href="#service-${slugify(category)}">${escapeHtml(category)}</a>`
       ).join("") +
-      `<a href="#order">下單</a><a href="#lookup">查詢訂單</a>`;
+      `<a href="#order">下單</a><a href="#lookup">查詢訂單</a><a href="/admin.html">新增作品</a>`;
   }
 }
 
