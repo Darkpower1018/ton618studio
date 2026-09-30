@@ -34,8 +34,9 @@ button:disabled{opacity:.55;cursor:wait}
 .paypal-buttons{min-height:44px}
 .wallet-button{margin-top:10px}
 .card-fields{display:grid;gap:10px;width:100%}
-.card-field{min-height:46px;background:#fff;border-radius:4px;padding:6px;width:100%;min-width:0}
-.card-submit{width:100%;margin-top:12px}
+.card-field{min-height:46px;background:#0b0812;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:6px;width:100%;min-width:0}
+.card-submit{width:100%;margin-top:12px;border:1px solid rgba(164,103,255,0.35);background:linear-gradient(145deg,#8d6be8,#6f45c7);color:#fff;border-radius:9px}
+.card-submit:hover{background:linear-gradient(145deg,#9b7af0,#7b51d6)}
 .small{font-size:11px;color:#6f6678}
 .hidden{display:none}
 .success{color:#86d8aa}
@@ -264,9 +265,17 @@ async function setupPaymentMethods(){
         input:{
           "font-size":"16px",
           "font-family":"Arial, Noto Sans TC, sans-serif",
-          color:"#17131c"
+          color:"#f4f1fa",
+          background:"#0b0812",
+          border:"1px solid rgba(255,255,255,0.12)",
+          "border-radius":"10px",
+          padding:"14px"
         },
-        ".invalid":{color:"#b00020"}
+        ":focus":{
+          border:"1px solid rgba(164,103,255,0.7)",
+          outline:"none"
+        },
+        ".invalid":{color:"#ff8f9b"}
       }
     });
 
