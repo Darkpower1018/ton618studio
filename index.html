@@ -824,40 +824,8 @@ orderForm.addEventListener("submit", async event => {
 });
 
 
-async function startPayment(orderNumber, button) {
-
-  button.disabled = true;
-  button.textContent = "建立付款頁面……";
-
-  try {
-
-    const response = await fetch("/api/create-checkout-session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        order_number: orderNumber
-      })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "付款頁面建立失敗。");
-    }
-
-    window.location.href = result.url;
-
-  } catch (error) {
-
-    console.error(error);
-    alert(error.message);
-    button.disabled = false;
-    button.textContent = "立即付款";
-
-  }
-
+function startPayment(orderNumber) {
+  window.location.href = "/order.html?order=" + encodeURIComponent(orderNumber);
 }
 
 document.addEventListener("click", event => {
@@ -866,7 +834,7 @@ document.addEventListener("click", event => {
 
   if (!button) return;
 
-  startPayment(button.dataset.orderNumber, button);
+  startPayment(button.dataset.orderNumber);
 
 });
 
