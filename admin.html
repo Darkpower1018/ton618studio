@@ -1186,16 +1186,45 @@ orderStatusFilter.addEventListener(
     if (!file) { alert("請選擇作品檔案。"); return; }
 
     const allowedVideo = ["video/mp4", "video/webm", "video/quicktime"];
-    const allowedAudio = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/wave"];
+    const allowedAudio = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave", "audio/mp4", "audio/x-m4a", "audio/ogg"];
     const allowedImage = ["image/jpeg", "image/png", "image/webp"];
-    const allowed = category === "video"
-      ? [...allowedVideo, ...allowedImage]
-      : [...allowedAudio, ...allowedImage];
 
-    if (!allowed.includes(file.type)) {
+    const fileNameLower = file.name.toLowerCase();
+    const extensionName = fileNameLower.includes(".")
+      ? fileNameLower.slice(fileNameLower.lastIndexOf("."))
+      : "";
+
+    const audioMimeByExtension = {
+      ".mp3": "audio/mpeg",
+      ".wav": "audio/wav",
+      ".m4a": "audio/mp4",
+      ".ogg": "audio/ogg"
+    };
+
+    const expectedAudioMime =
+      audioMimeByExtension[extensionName] || file.type;
+
+    const isSupportedAudio =
+      category === "music" &&
+      (allowedAudio.includes(file.type) ||
+        Boolean(audioMimeByExtension[extensionName]));
+
+    const isSupportedVideo =
+      category === "video" &&
+      (allowedVideo.includes(file.type) ||
+        [".mp4", ".webm", ".mov"].includes(extensionName));
+
+    const isSupportedImage =
+      allowedImage.includes(file.type) ||
+      [".jpg", ".jpeg", ".png", ".webp"].includes(extensionName);
+
+    if (!(
+      (category === "music" && (isSupportedAudio || isSupportedImage)) ||
+      (category === "video" && (isSupportedVideo || isSupportedImage))
+    )) {
       alert(category === "video"
         ? "影片作品請上傳 MP4、MOV、WebM 或作品封面圖片。"
-        : "音樂作品請上傳 MP3、WAV 或作品封面圖片。");
+        : "音樂作品請上傳 MP3、WAV、M4A、OGG 或作品封面圖片。");
       return;
     }
 
@@ -1239,7 +1268,9 @@ orderStatusFilter.addEventListener(
         metadata: {
           bucketName: "works",
           objectName: path,
-          contentType: category === "music" ? (expectedAudioMime || "application/octet-stream") : (file.type || "application/octet-stream"),
+          contentType: category === "music"
+            ? (expectedAudioMime || "application/octet-stream")
+            : (file.type || "application/octet-stream"),
           cacheControl: "3600"
         },
         chunkSize: 6 * 1024 * 1024,
