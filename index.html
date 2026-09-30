@@ -63,6 +63,12 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .service-head{position:relative;z-index:1}
 .service-head .icon{font-size:42px;margin:34px 0 12px;color:#a467ff}
 .service-head h3{font-size:32px;margin:0 0 10px}
+.gunsync-block{grid-template-columns:1fr 1fr}
+.gunsync-media-column{position:relative;z-index:1;display:flex;flex-direction:column;gap:18px;justify-content:center}
+.service-video{width:100%;border:1px solid #ffffff12;border-radius:8px;overflow:hidden;background:#050407;box-shadow:0 18px 50px #0008}
+.service-video video{display:block;width:100%;height:auto;max-height:360px;object-fit:contain;background:#000}
+@media(max-width:900px){.gunsync-block{grid-template-columns:1fr}}
+@media(max-width:600px){.service-video video{max-height:240px}}
 .service-head .tags{display:flex;gap:8px;margin-top:28px;position:static}
 .service-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative;z-index:1}
 .music-block .service-prices{grid-template-columns:repeat(2,1fr)}
@@ -658,6 +664,20 @@ async function loadServices() {
     }
   };
 
+  let gunsyncVideoUrl = "";
+  const { data: gunsyncMedia } = await supabaseClient
+    .from("works")
+    .select("storage_path")
+    .eq("category", "gunsync")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (gunsyncMedia?.storage_path) {
+    const { data: mediaUrlData } = supabaseClient.storage.from("works").getPublicUrl(gunsyncMedia.storage_path);
+    gunsyncVideoUrl = mediaUrlData?.publicUrl || "";
+  }
+
   const fallbackMeta = {
     icon: "✦",
     code: "SERVICE",
@@ -694,7 +714,7 @@ async function loadServices() {
       const anchor = "service-" + slugify(category);
 
       return `
-        <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""}">
+        <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""} ${category === "GUNSYNC" ? "gunsync-block" : ""}">
           <div class="service-head">
             <div>
               <div class="num">${m.code}</div>
@@ -707,6 +727,13 @@ async function loadServices() {
             </div>
           </div>
 
+          ${category === "GUNSYNC" ? `
+          <div class="gunsync-media-column">
+            ${gunsyncVideoUrl ? `
+              <div class="service-video"><video controls playsinline preload="metadata" src="${escapeAttribute(gunsyncVideoUrl)}"></video></div>
+            ` : `
+              <div class="service-video" style="aspect-ratio:16/9;display:grid;place-items:center;"><span class="muted">GUNSYNC 展示影片</span></div>
+            `}
           <div class="service-prices">
             ${items.map((item, index) => `
               <div class="price ${index === 1 ? "hot" : ""}">
@@ -718,6 +745,20 @@ async function loadServices() {
               </div>
             `).join("")}
           </div>
+          </div>
+          ` : `
+          <div class="service-prices">
+            ${items.map((item, index) => `
+              <div class="price ${index === 1 ? "hot" : ""}">
+                <small>${m.code} / ${String(index + 1).padStart(2, "0")}</small>
+                <h3>${escapeHtml(item.package || "方案")}</h3>
+                <div class="amount"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
+                <p class="service-description">${escapeHtml(item.description || "")}</p>
+                <button data-service="${escapeAttribute(`${item.service}｜${item.package} HKD $${item.price}`)}">選擇套餐</button>
+              </div>
+            `).join("")}
+          </div>
+          `}
         </div>
       `;
     }).join("");
@@ -762,6 +803,7 @@ async function loadWorks() {
   const { data: works, error } = await supabaseClient
     .from("works")
     .select("id,title,category,storage_path,extension,mime_type,created_at")
+    .neq("category", "gunsync")
     .order("created_at", { ascending: false });
 
   if (error) {
