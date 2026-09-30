@@ -713,9 +713,10 @@ async function loadServices() {
         .filter(Boolean);
       const displayTags = categoryTags.length ? categoryTags : m.tags;
       const anchor = "service-" + slugify(category);
+      const isGunsync = /GUN\s*SYNC|GUNSYNC/i.test(String(category)) || String(category).includes("綠幕");
 
       return `
-        <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""} ${category === "GUNSYNC" ? "gunsync-block" : ""}">
+        <div id="${anchor}" class="service-block ${category === "編曲" ? "music-block" : ""} ${isGunsync ? "gunsync-block" : ""}">
           <div class="service-head">
             <div>
               <div class="num">${m.code}</div>
@@ -728,7 +729,7 @@ async function loadServices() {
             </div>
           </div>
 
-          ${category === "GUNSYNC" ? `
+          ${isGunsync ? `
           <div class="gunsync-media-column">
             ${gunsyncVideoUrl ? `
               <div class="service-video"><video controls playsinline preload="metadata" src="${escapeAttribute(gunsyncVideoUrl)}"></video></div>
