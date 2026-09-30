@@ -71,36 +71,7 @@ export default async function handler(req, res) {
 
     if (!order) return res.status(404).json({ error: "找不到訂單。" });
     if (order.payment_status === "paid") {
-      return res.status(200).json({ paid: true });
-    }
-    if (order.stripe_session_id !== paypal_order_id) {
-      return res.status(400).json({ error: "付款資料與訂單不符。" });
-    }
-
-    const accessToken = await getPayPalAccessToken();
-    const captureResponse = await fetch(
-      `https://api-m.paypal.com/v2/checkout/orders/${encodeURIComponent(paypal_order_id)}/capture`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    const captureData = await captureResponse.json();
-
-    if (!captureResponse.ok) {
-      console.error("PayPal capture failed:", captureResponse.status, captureData);
-      return res.status(400).json({ error: "PayPal 付款確認失敗，請稍後再試。" });
-    }
-
-    if (captureData.status !== "COMPLETED") {
-      return res.status(400).json({ error: "PayPal 尚未完成付款。" });
-    }
-
-    if (DISCORD_WEBHOOK_URL) {
+      if (DISCORD_WEBHOOK_URL) {
       const discordPayload = {
         username: "能量工作室",
         embeds: [{
@@ -128,6 +99,35 @@ export default async function handler(req, res) {
       } catch (discordError) {
         console.error("Discord payment notification failed:", discordError);
       }
+    }
+
+    return res.status(200).json({ paid: true });
+    }
+    if (order.stripe_session_id !== paypal_order_id) {
+      return res.status(400).json({ error: "付款資料與訂單不符。" });
+    }
+
+    const accessToken = await getPayPalAccessToken();
+    const captureResponse = await fetch(
+      `https://api-m.paypal.com/v2/checkout/orders/${encodeURIComponent(paypal_order_id)}/capture`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    const captureData = await captureResponse.json();
+
+    if (!captureResponse.ok) {
+      console.error("PayPal capture failed:", captureResponse.status, captureData);
+      return res.status(400).json({ error: "PayPal 付款確認失敗，請稍後再試。" });
+    }
+
+    if (captureData.status !== "COMPLETED") {
+      return res.status(400).json({ error: "PayPal 尚未完成付款。" });
     }
 
     const updateResponse = await supabaseRequest(
