@@ -309,79 +309,6 @@
       gap: 12px;
     }
 
-    .service-category-editor {
-      margin-top: 8px;
-      padding: 18px;
-      border: 1px solid rgba(164,103,255,0.18);
-      background: rgba(164,103,255,0.035);
-      border-radius: 15px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .service-category-title {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-
-    .service-category-title strong {
-      font-size: 17px;
-      color: #f4f1fa;
-    }
-
-    .service-category-title span {
-      color: #8e8998;
-      font-size: 12px;
-    }
-
-    .category-description-input {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.28);
-      color: #f4f1fa;
-      padding: 12px 14px;
-      border-radius: 10px;
-      outline: none;
-      resize: vertical;
-      min-height: 82px;
-      font: inherit;
-      line-height: 1.6;
-    }
-
-    .category-description-input:focus,
-    .category-tags-input:focus {
-      border-color: rgba(164,103,255,0.6);
-    }
-
-    .category-tags-input {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.28);
-      color: #f4f1fa;
-      padding: 12px 14px;
-      border-radius: 10px;
-      outline: none;
-      font: inherit;
-    }
-
-    .category-tags-input::placeholder {
-      color: #777080;
-    }
-
-    .save-category-description-btn {
-      justify-self: start;
-      border: 1px solid rgba(164,103,255,0.35);
-      background: rgba(164,103,255,0.08);
-      color: #d9c9ff;
-      padding: 9px 13px;
-      border-radius: 9px;
-      cursor: pointer;
-      font: inherit;
-    }
-
     .service-item {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -746,20 +673,6 @@
 
     </section>
     
-<section class="service-media-manager">
-  <h2>服務展示影片</h2>
-  <div class="card">
-    <div class="work-upload">
-      <strong>GUNSYNC 展示影片</strong>
-      <small>這支影片會顯示在網站 GUNSYNC 分類的簡介旁邊，不會出現在「作品」列表。建議使用 MP4（H.264）。</small>
-      <input type="file" id="gunsyncVideoFile" accept="video/mp4,video/webm,video/quicktime">
-      <button class="primary-btn" type="button" id="uploadGunsyncVideoBtn">＋ 上傳 GUNSYNC 影片</button>
-      <div class="status" id="gunsyncVideoStatus"></div>
-    </div>
-    <div id="gunsyncVideoPreview"></div>
-  </div>
-</section>
-
 <section class="works-manager">
   <h2>作品管理</h2>
   <div class="card">
@@ -922,7 +835,6 @@
     await loadOrders();
     await loadServices();
     await loadWorks();
-    await loadGunsyncVideo();
 
   }
 
@@ -1098,33 +1010,7 @@ orderStatusFilter.addEventListener(
     }
 
     serviceList.innerHTML = data
-      .map((service, serviceIndex) => `
-        ${data.findIndex(item => item.service === service.service) === serviceIndex ? `
-          <div class="service-category-editor">
-            <div class="service-category-title">
-              <strong>${escapeHtml(service.service)}</strong>
-              <span>分類簡介</span>
-            </div>
-            <textarea
-              class="category-description-input"
-              data-category="${escapeAttribute(service.service)}"
-              rows="3"
-              placeholder="輸入這個分類在網站上顯示的簡介……"
-            >${escapeHtml(service.category_description || "")}</textarea>
-            <input
-              class="category-tags-input"
-              data-category="${escapeAttribute(service.service)}"
-              value="${escapeAttribute(service.category_tags || "")}"
-              placeholder="輸入小 Tag，用逗號分隔，例如：SHORTS, TIKTOK, REELS"
-            >
-            <button
-              type="button"
-              class="save-category-description-btn"
-              data-category="${escapeAttribute(service.service)}"
-            >儲存分類簡介與小 Tag</button>
-          </div>
-        ` : ""}
-
+      .map(service => `
         <div class="service-item">
           <div>
             <strong>${escapeHtml(service.service)}</strong>
@@ -1176,173 +1062,6 @@ orderStatusFilter.addEventListener(
       .join("");
   }
 
-
-  // =========================
-  // GUNSYNC 展示影片
-  // =========================
-
-  const gunsyncVideoBtn = document.getElementById("uploadGunsyncVideoBtn");
-  const gunsyncVideoStatus = document.getElementById("gunsyncVideoStatus");
-
-  async function loadGunsyncVideo() {
-    const preview = document.getElementById("gunsyncVideoPreview");
-    if (!preview) return;
-
-    const { data, error } = await supabaseClient
-      .from("service_media")
-      .select("id,storage_path,file_name,mime_type")
-      .eq("service", "GUNSYNC")
-      .maybeSingle();
-
-    if (error) {
-      console.error(error);
-      preview.innerHTML = '<div class="empty">無法載入 GUNSYNC 影片。請確認已建立 service_media 資料表。</div>';
-      return;
-    }
-
-    if (!data?.storage_path) {
-      preview.innerHTML = '<div class="empty">目前沒有 GUNSYNC 展示影片。</div>';
-      return;
-    }
-
-    const { data: urlData } = supabaseClient.storage.from("works").getPublicUrl(data.storage_path);
-    const url = urlData?.publicUrl || "";
-
-    preview.innerHTML = \`
-      <div class="gunsync-video-preview">
-        <video controls playsinline preload="metadata" src="\${escapeAttribute(url)}"></video>
-        <div class="gunsync-video-actions">
-          <span style="flex:1;color:#8e8998;align-self:center;">\${escapeHtml(data.file_name || "GUNSYNC 影片")}</span>
-          <button type="button" class="delete-gunsync-video" data-id="\${escapeAttribute(data.id)}" data-path="\${escapeAttribute(data.storage_path)}">刪除影片</button>
-        </div>
-      </div>
-    \`;
-  }
-
-  document.addEventListener("click", async event => {
-    const deleteBtn = event.target.closest(".delete-gunsync-video");
-    if (!deleteBtn) return;
-    if (!confirm("確定要刪除目前的 GUNSYNC 展示影片嗎？")) return;
-
-    deleteBtn.disabled = true;
-    deleteBtn.textContent = "刪除中……";
-
-    const { error: storageError } = await supabaseClient.storage.from("works").remove([deleteBtn.dataset.path]);
-    if (storageError) {
-      alert("刪除影片檔案失敗：" + storageError.message);
-      deleteBtn.disabled = false;
-      deleteBtn.textContent = "刪除影片";
-      return;
-    }
-
-    const { error: dbError } = await supabaseClient.from("service_media").delete().eq("id", deleteBtn.dataset.id);
-    if (dbError) {
-      alert("影片已從 Storage 刪除，但資料庫紀錄刪除失敗：" + dbError.message);
-      return;
-    }
-
-    await loadGunsyncVideo();
-  });
-
-  gunsyncVideoBtn?.addEventListener("click", async () => {
-    const fileInput = document.getElementById("gunsyncVideoFile");
-    const file = fileInput?.files?.[0];
-
-    if (!file) {
-      alert("請先選擇影片。");
-      return;
-    }
-
-    const ext = file.name.toLowerCase().includes(".")
-      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
-      : "";
-
-    if (![".mp4", ".webm", ".mov"].includes(ext)) {
-      alert("GUNSYNC 展示影片請上傳 MP4、WebM 或 MOV。");
-      return;
-    }
-
-    gunsyncVideoBtn.disabled = true;
-    gunsyncVideoBtn.textContent = "上傳中……";
-    gunsyncVideoStatus.textContent = "正在建立上傳連線……";
-
-    try {
-      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-      if (sessionError || !sessionData.session) throw new Error("登入工作階段已失效，請重新登入。");
-
-      const projectId = SUPABASE_URL.replace("https://", "").split(".")[0];
-      const uploadUrl = "https://" + projectId + ".storage.supabase.co/storage/v1/upload/resumable";
-      const path = "service-media/gunsync/" + crypto.randomUUID() + ext;
-
-      const upload = new tus.Upload(file, {
-        endpoint: uploadUrl,
-        retryDelays: [0,3000,5000,10000,20000],
-        headers: {
-          authorization: "Bearer " + sessionData.session.access_token,
-          "x-upsert": "false"
-        },
-        uploadDataDuringCreation: true,
-        removeFingerprintOnSuccess: true,
-        metadata: {
-          bucketName: "works",
-          objectName: path,
-          contentType: file.type || (ext === ".mp4" ? "video/mp4" : "video/webm"),
-          cacheControl: "3600"
-        },
-        chunkSize: 6 * 1024 * 1024,
-        onError: error => {
-          console.error(error);
-          gunsyncVideoStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
-          gunsyncVideoBtn.disabled = false;
-          gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
-        },
-        onProgress: (uploaded,total) => {
-          const pct = Math.floor(uploaded / total * 100);
-          gunsyncVideoBtn.textContent = "上傳中 " + pct + "%";
-          gunsyncVideoStatus.textContent = "正在上傳 " + (uploaded/1024/1024).toFixed(1) + " MB / " + (total/1024/1024).toFixed(1) + " MB";
-        },
-        onSuccess: async () => {
-          const { data: existing } = await supabaseClient
-            .from("service_media")
-            .select("id,storage_path")
-            .eq("service", "GUNSYNC")
-            .maybeSingle();
-
-          if (existing?.storage_path) {
-            await supabaseClient.storage.from("works").remove([existing.storage_path]);
-            await supabaseClient.from("service_media").delete().eq("id", existing.id);
-          }
-
-          const { error: dbError } = await supabaseClient
-            .from("service_media")
-            .insert({
-              service: "GUNSYNC",
-              storage_path: path,
-              file_name: file.name,
-              mime_type: file.type || (ext === ".mp4" ? "video/mp4" : "video/webm")
-            });
-
-          if (dbError) {
-            await supabaseClient.storage.from("works").remove([path]);
-            throw new Error("影片資料建立失敗：" + dbError.message);
-          }
-
-          fileInput.value = "";
-          gunsyncVideoStatus.textContent = "✓ GUNSYNC 展示影片已更新。";
-          gunsyncVideoBtn.disabled = false;
-          gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
-          await loadGunsyncVideo();
-        }
-      });
-
-      upload.start();
-    } catch (error) {
-      console.error(error);
-      gunsyncVideoStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
-      gunsyncVideoBtn.disabled = false;
-      gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
-    }
-  });
 
   // =========================
   // 作品管理
@@ -1828,7 +1547,6 @@ function createOrderHTML(order) {
   loadOrders();
   loadServices();
   loadWorks();
-  loadGunsyncVideo();
 
 });
 
@@ -1952,47 +1670,6 @@ document.addEventListener("change", async (event) => {
   });
 
   document.addEventListener("click", async (event) => {
-
-  const categoryButton = event.target.closest(".save-category-description-btn");
-
-  if (categoryButton) {
-    const category = categoryButton.dataset.category;
-    const input = document.querySelector(
-      `.category-description-input[data-category="${CSS.escape(category)}"]`
-    );
-    const tagsInput = document.querySelector(
-      `.category-tags-input[data-category="${CSS.escape(category)}"]`
-    );
-
-    if (!category || !input || !tagsInput) return;
-
-    categoryButton.disabled = true;
-    categoryButton.textContent = "儲存中……";
-
-    const { error } = await supabaseClient
-      .from("services")
-      .update({
-        category_description: input.value.trim(),
-        category_tags: tagsInput.value.trim()
-      })
-      .eq("service", category);
-
-    if (error) {
-      console.error(error);
-      alert("分類簡介更新失敗：" + error.message);
-      categoryButton.disabled = false;
-      categoryButton.textContent = "儲存分類簡介";
-      return;
-    }
-
-    categoryButton.textContent = "✓ 已儲存";
-    setTimeout(() => {
-      categoryButton.disabled = false;
-      categoryButton.textContent = "儲存分類簡介";
-    }, 1500);
-
-    return;
-  }
 
   if (!event.target.classList.contains("toggle-service-btn")) {
     return;
