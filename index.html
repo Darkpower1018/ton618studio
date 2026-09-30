@@ -551,7 +551,7 @@ async function loadWorks() {
   grid.innerHTML = rows.map(work => {
     const imageExt = ["jpg","jpeg","png","webp","gif"];
     const videoExt = ["mp4","webm","mov","m4v"];
-    const audioExt = ["mp3","wav","m4a","ogg"];
+    const audioExt = ["mp3","wav","m4a","ogg","aac","flac"];
     let media = '<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">查看作品 ↗</a>';
     if (imageExt.includes(work.extension)) media = '<img class="work-media" src="' + escapeAttribute(work.url) + '" alt="' + escapeAttribute(work.title) + '" loading="lazy">';
     else if (videoExt.includes(work.extension)) media = '<video class="work-media" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></video>';
