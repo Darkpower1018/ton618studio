@@ -25,6 +25,7 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .hero p{color:#a49cab;line-height:2;font-size:15px}
 .buttons{display:flex;gap:12px;margin-top:32px}
 .btn{padding:14px 22px;text-decoration:none;border-radius:5px;font-size:13px}
+.works-add-btn{white-space:nowrap}
 .primary{background:#f5f0fb;color:#09060d;font-weight:800}
 .secondary{border:1px solid #ffffff1d;color:#ddd6e5}
 .blackhole{height:560px;position:relative;display:grid;place-items:center}
@@ -239,6 +240,7 @@ footer{flex-direction:column;gap:12px}
       <div class="eyebrow">03 / SELECTED WORKS</div>
       <h2>作品</h2>
     </div>
+    <a class="btn secondary works-add-btn" href="/admin.html">新增作品 ↗</a>
   </div>
 
   <div class="works" id="worksGrid">
@@ -492,7 +494,7 @@ async function loadServices() {
       categories.map(category =>
         `<a href="#service-${slugify(category)}">${escapeHtml(category)}</a>`
       ).join("") +
-      `<a href="#order">下單</a><a href="#lookup">查詢訂單</a><a href="/admin.html">新增作品</a>`;
+      `<a href="#order">下單</a><a href="#lookup">查詢訂單</a>`;
   }
 }
 
