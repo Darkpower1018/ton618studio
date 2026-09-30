@@ -471,6 +471,11 @@ async function loadServices() {
       const m = meta[category] || fallbackMeta;
       const items = data.filter(item => item.service === category);
       const categoryDescription = items[0]?.category_description || m.description;
+      const categoryTags = (items[0]?.category_tags || "")
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(Boolean);
+      const displayTags = categoryTags.length ? categoryTags : m.tags;
       const anchor = "service-" + slugify(category);
 
       return `
@@ -482,7 +487,7 @@ async function loadServices() {
               <h3>${escapeHtml(category)}</h3>
               <p class="muted">${escapeHtml(categoryDescription)}</p>
               <div class="tags">
-                ${m.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+                ${displayTags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
               </div>
             </div>
           </div>
