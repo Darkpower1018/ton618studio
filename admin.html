@@ -1239,7 +1239,7 @@ orderStatusFilter.addEventListener(
         metadata: {
           bucketName: "works",
           objectName: path,
-          contentType: file.type || "application/octet-stream",
+          contentType: category === "music" ? (expectedAudioMime || "application/octet-stream") : (file.type || "application/octet-stream"),
           cacheControl: "3600"
         },
         chunkSize: 6 * 1024 * 1024,
