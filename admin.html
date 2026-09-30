@@ -1099,7 +1099,8 @@ orderStatusFilter.addEventListener(
     const { data, error } = await supabaseClient
       .from("works")
       .select("id,title,storage_path,file_name,mime_type,extension,created_at")
-      .eq("category", "gunsync")
+      .eq("category", "video")
+      .like("storage_path", "gunsync/%")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -1232,7 +1233,8 @@ orderStatusFilter.addEventListener(
             const { data: existing, error: existingError } = await supabaseClient
               .from("works")
               .select("id,storage_path")
-              .eq("category", "gunsync")
+              .eq("category", "video")
+              .like("storage_path", "gunsync/%")
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
@@ -1245,7 +1247,7 @@ orderStatusFilter.addEventListener(
               .from("works")
               .insert({
                 title: "GUNSYNC 展示影片",
-                category: "gunsync",
+                category: "video",
                 storage_path: path,
                 file_name: file.name,
                 extension: ext.replace(".", ""),
@@ -1308,7 +1310,7 @@ orderStatusFilter.addEventListener(
     const { data: works, error } = await supabaseClient
       .from("works")
       .select("id,title,category,storage_path,extension,mime_type,created_at")
-      .neq("category", "gunsync")
+      .not("storage_path", "like", "gunsync/%")
       .order("created_at", { ascending: false });
 
     if (error) {
