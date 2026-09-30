@@ -236,7 +236,7 @@ footer{flex-direction:column;gap:12px}
 <section id="works" class="section">
   <div class="section-title">
     <div>
-      <div class="eyebrow">04 / SELECTED WORKS</div>
+      <div class="eyebrow" id="worksEyebrow">04 / SELECTED WORKS</div>
       <h2>作品</h2>
     </div>
 
@@ -257,7 +257,7 @@ footer{flex-direction:column;gap:12px}
   <div class="orderbox">
 
     <div class="intro">
-      <div class="eyebrow">05 / COMMISSION</div>
+      <div class="eyebrow" id="orderEyebrow">05 / COMMISSION</div>
       <h2>開始一個<br>委託。</h2>
       <p class="muted">
         告訴我你想做什麼。<br>
@@ -334,7 +334,7 @@ footer{flex-direction:column;gap:12px}
 <section id="lookup" class="section">
   <div class="section-title">
     <div>
-      <div class="eyebrow">06 / ORDER STATUS</div>
+      <div class="eyebrow" id="lookupEyebrow">06 / ORDER STATUS</div>
       <h2>查詢訂單</h2>
     </div>
     <div class="muted">
@@ -449,6 +449,21 @@ async function loadServices() {
     description: "依照你的需求提供專業製作服務。",
     tags: ["TON618", "SERVICE"]
   };
+
+  // 根據服務分類數量，自動更新後續區塊編號
+  const worksEyebrow = document.getElementById("worksEyebrow");
+  const orderEyebrow = document.getElementById("orderEyebrow");
+  const lookupEyebrow = document.getElementById("lookupEyebrow");
+
+  if (worksEyebrow) {
+    worksEyebrow.textContent = String(categories.length + 1).padStart(2, "0") + " / SELECTED WORKS";
+  }
+  if (orderEyebrow) {
+    orderEyebrow.textContent = String(categories.length + 2).padStart(2, "0") + " / COMMISSION";
+  }
+  if (lookupEyebrow) {
+    lookupEyebrow.textContent = String(categories.length + 3).padStart(2, "0") + " / ORDER STATUS";
+  }
 
   const container = document.getElementById("serviceCategories");
   if (container) {
