@@ -71,36 +71,6 @@ export default async function handler(req, res) {
 
     if (!order) return res.status(404).json({ error: "找不到訂單。" });
     if (order.payment_status === "paid") {
-      if (DISCORD_WEBHOOK_URL) {
-      const discordPayload = {
-        username: "能量工作室",
-        embeds: [{
-          title: "💰 付款成功",
-          color: 0x58c77b,
-          fields: [
-            { name: "訂單編號", value: order.order_number || "未設定", inline: true },
-            { name: "服務", value: order.service || "未設定", inline: true },
-            { name: "套餐", value: order.package || "未設定", inline: true },
-            { name: "價格", value: `HKD ${order.price}`, inline: true },
-            { name: "客戶", value: order.customer_name || "未設定", inline: true },
-            { name: "聯絡方式", value: `${order.contact_type || ""} / ${order.contact || ""}`, inline: true },
-            { name: "付款狀態", value: "✓ 已付款", inline: true }
-          ],
-          timestamp: new Date().toISOString()
-        }]
-      };
-
-      try {
-        await fetch(DISCORD_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(discordPayload)
-        });
-      } catch (discordError) {
-        console.error("Discord payment notification failed:", discordError);
-      }
-    }
-
     return res.status(200).json({ paid: true });
     }
     if (order.stripe_session_id !== paypal_order_id) {
@@ -145,6 +115,36 @@ export default async function handler(req, res) {
     if (!updateResponse.ok) {
       const errorText = await updateResponse.text();
       throw new Error(`付款已完成，但更新訂單失敗：${updateResponse.status} ${errorText}`);
+    }
+
+      if (DISCORD_WEBHOOK_URL) {
+      const discordPayload = {
+        username: "能量工作室",
+        embeds: [{
+          title: "💰 付款成功",
+          color: 0x58c77b,
+          fields: [
+            { name: "訂單編號", value: order.order_number || "未設定", inline: true },
+            { name: "服務", value: order.service || "未設定", inline: true },
+            { name: "套餐", value: order.package || "未設定", inline: true },
+            { name: "價格", value: `HKD ${order.price}`, inline: true },
+            { name: "客戶", value: order.customer_name || "未設定", inline: true },
+            { name: "聯絡方式", value: `${order.contact_type || ""} / ${order.contact || ""}`, inline: true },
+            { name: "付款狀態", value: "✓ 已付款", inline: true }
+          ],
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      try {
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(discordPayload)
+        });
+      } catch (discordError) {
+        console.error("Discord payment notification failed:", discordError);
+      }
     }
 
     return res.status(200).json({ paid: true });
