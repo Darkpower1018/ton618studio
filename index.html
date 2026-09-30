@@ -668,7 +668,8 @@ async function loadServices() {
   const { data: gunsyncMedia } = await supabaseClient
     .from("works")
     .select("storage_path")
-    .eq("category", "gunsync")
+    .eq("category", "video")
+    .like("storage_path", "gunsync/%")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -803,7 +804,7 @@ async function loadWorks() {
   const { data: works, error } = await supabaseClient
     .from("works")
     .select("id,title,category,storage_path,extension,mime_type,created_at")
-    .neq("category", "gunsync")
+    .not("storage_path", "like", "gunsync/%")
     .order("created_at", { ascending: false });
 
   if (error) {
