@@ -78,6 +78,9 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .work-info{padding:18px}
 .work-info span{font:9px monospace;color:#665e6e}
 .work-info h3{margin:7px 0}
+.work-media{width:100%;height:310px;display:block;object-fit:cover;background:#050407}
+.work-media.audio{height:auto;margin:0;padding:26px 18px;box-sizing:border-box}
+.work-empty{padding:70px 20px;text-align:center;color:#777080;border:1px solid #ffffff12;background:#08070b}
 .orderbox{display:grid;grid-template-columns:.75fr 1.25fr;border:1px solid #ffffff14;background:linear-gradient(120deg,#140b20,#08070b)}
 .intro{padding:50px;border-right:1px solid #ffffff12}
 .intro h2{font-size:55px;line-height:1;letter-spacing:-.07em}
@@ -238,20 +241,12 @@ footer{flex-direction:column;gap:12px}
     </div>
   </div>
 
-  <div class="works">
+  <div class="works" id="worksGrid">
     <div class="work">
       <div class="art"></div>
       <div class="work-info">
-        <span>VIDEO EDITING</span>
-        <h3>你的影片作品會出現在這裡</h3>
-      </div>
-    </div>
-
-    <div class="work">
-      <div class="art"></div>
-      <div class="work-info">
-        <span>MUSIC</span>
-        <h3>TON618 SOUND</h3>
+        <span>TON618</span>
+        <h3>作品載入中……</h3>
       </div>
     </div>
   </div>
@@ -523,7 +518,45 @@ function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
+async function loadWorks() {
+  const grid = document.getElementById("worksGrid");
+  if (!grid) return;
+  const categories = ["video", "music"];
+  const rows = [];
+  for (const category of categories) {
+    const { data, error } = await supabaseClient.storage.from("works").list(category, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+    if (error) { console.error("載入作品失敗：", error); grid.innerHTML = '<div class="work-empty">作品暫時無法載入。</div>'; return; }
+    (data || []).forEach(file => {
+      if (!file.name || file.name.startsWith(".")) return;
+      const separator = file.name.indexOf("__");
+      const encodedTitle = separator >= 0 ? file.name.slice(separator + 2) : file.name;
+      const dot = encodedTitle.lastIndexOf(".");
+      const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
+      const extension = dot >= 0 ? encodedTitle.slice(dot + 1).toLowerCase() : "";
+      let title = titlePart;
+      try { title = decodeURIComponent(titlePart); } catch (_) {}
+      const { data: publicData } = supabaseClient.storage.from("works").getPublicUrl(category + "/" + file.name);
+      rows.push({ category, title, extension, url: publicData.publicUrl });
+    });
+  }
+  if (!rows.length) {
+    grid.innerHTML = '<div class="work-empty" style="grid-column:1/-1;">作品會在這裡展示。</div>';
+    return;
+  }
+  grid.innerHTML = rows.map(work => {
+    const imageExt = ["jpg","jpeg","png","webp","gif"];
+    const videoExt = ["mp4","webm","mov","m4v"];
+    const audioExt = ["mp3","wav","m4a","ogg"];
+    let media = '<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">查看作品 ↗</a>';
+    if (imageExt.includes(work.extension)) media = '<img class="work-media" src="' + escapeAttribute(work.url) + '" alt="' + escapeAttribute(work.title) + '" loading="lazy">';
+    else if (videoExt.includes(work.extension)) media = '<video class="work-media" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></video>';
+    else if (audioExt.includes(work.extension)) media = '<audio class="work-media audio" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></audio>';
+    return '<div class="work">' + media + '<div class="work-info"><span>' + (work.category === "video" ? "VIDEO" : "MUSIC") + '</span><h3>' + escapeHtml(work.title) + '</h3></div></div>';
+  }).join("");
+}
+
 loadServices();
+loadWorks();
   async function loadOrderServices() {
 
   const {
