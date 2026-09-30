@@ -166,6 +166,13 @@
       opacity: 0.9;
     }
 
+    .gunsync-video-manager{margin-top:28px}
+    .gunsync-video-manager .card{display:grid;gap:18px}
+    .gunsync-video-preview{border:1px solid #ffffff12;background:#050407;border-radius:10px;overflow:hidden}
+    .gunsync-video-preview video{display:block;width:100%;max-height:420px;background:#000}
+    .gunsync-video-actions{display:flex;gap:10px;padding:12px}
+    .gunsync-video-actions button{border:1px solid #ffffff16;background:#0b0812;color:#ddd;padding:9px 13px;border-radius:6px;cursor:pointer}
+    .gunsync-video-actions button:hover{border-color:#a35cff66;color:#fff}
     .status {
       margin-top: 15px;
       color: #b8b2c2;
@@ -673,6 +680,20 @@
 
     </section>
     
+<section class="gunsync-video-manager">
+  <h2>GUNSYNC 展示影片</h2>
+  <div class="card">
+    <div class="work-upload">
+      <strong>GUNSYNC 服務影片</strong>
+      <small>這支影片會顯示在網站 GUNSYNC 簡介旁邊，不會出現在一般「作品」列表。建議使用 MP4（H.264）。</small>
+      <input type="file" id="gunsyncVideoFile" accept="video/mp4,video/webm,video/quicktime">
+      <button class="primary-btn" type="button" id="uploadGunsyncVideoBtn">＋ 上傳 GUNSYNC 影片</button>
+      <div class="status" id="gunsyncVideoStatus"></div>
+    </div>
+    <div id="gunsyncVideoPreview"><div class="empty">載入 GUNSYNC 影片中……</div></div>
+  </div>
+</section>
+
 <section class="works-manager">
   <h2>作品管理</h2>
   <div class="card">
@@ -835,6 +856,7 @@
     await loadOrders();
     await loadServices();
     await loadWorks();
+    await loadGunsyncVideo();
 
   }
 
@@ -1064,6 +1086,192 @@ orderStatusFilter.addEventListener(
 
 
   // =========================
+  // GUNSYNC 展示影片
+  // =========================
+
+  const gunsyncVideoBtn = document.getElementById("uploadGunsyncVideoBtn");
+  const gunsyncVideoStatus = document.getElementById("gunsyncVideoStatus");
+
+  async function loadGunsyncVideo() {
+    const preview = document.getElementById("gunsyncVideoPreview");
+    if (!preview) return;
+
+    const { data, error } = await supabaseClient
+      .from("works")
+      .select("id,title,storage_path,file_name,mime_type,extension,created_at")
+      .eq("category", "gunsync")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      preview.innerHTML = '<div class="empty">無法載入 GUNSYNC 影片。<br><br>' + escapeHtml(error.message) + '</div>';
+      return;
+    }
+
+    if (!data?.storage_path) {
+      preview.innerHTML = '<div class="empty">目前沒有 GUNSYNC 展示影片。</div>';
+      return;
+    }
+
+    const { data: urlData } = supabaseClient.storage.from("works").getPublicUrl(data.storage_path);
+    const url = urlData?.publicUrl || "";
+
+    preview.innerHTML =
+      '<div class="gunsync-video-preview">' +
+        '<video controls playsinline preload="metadata" src="' + escapeAttribute(url) + '"></video>' +
+        '<div class="gunsync-video-actions">' +
+          '<span style="flex:1;color:#8e8998;align-self:center;">' + escapeHtml(data.file_name || "GUNSYNC 影片") + '</span>' +
+          '<button type="button" id="deleteGunsyncVideoBtn" data-id="' + escapeAttribute(data.id) + '" data-path="' + escapeAttribute(data.storage_path) + '">刪除影片</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  document.addEventListener("click", async event => {
+    const deleteBtn = event.target.closest("#deleteGunsyncVideoBtn");
+    if (!deleteBtn) return;
+    if (!confirm("確定要刪除目前的 GUNSYNC 展示影片嗎？")) return;
+
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = "刪除中……";
+
+    const { error: storageError } =
+      await supabaseClient.storage.from("works").remove([deleteBtn.dataset.path]);
+
+    if (storageError) {
+      alert("刪除影片檔案失敗：" + storageError.message);
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = "刪除影片";
+      return;
+    }
+
+    const { error: dbError } =
+      await supabaseClient.from("works").delete().eq("id", deleteBtn.dataset.id);
+
+    if (dbError) {
+      alert("影片檔案已刪除，但資料庫紀錄刪除失敗：" + dbError.message);
+      return;
+    }
+
+    await loadGunsyncVideo();
+  });
+
+  gunsyncVideoBtn?.addEventListener("click", async () => {
+    const fileInput = document.getElementById("gunsyncVideoFile");
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+      alert("請先選擇影片。");
+      return;
+    }
+
+    const ext = file.name.toLowerCase().includes(".")
+      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+      : "";
+
+    if (![".mp4", ".webm", ".mov"].includes(ext)) {
+      alert("GUNSYNC 展示影片請上傳 MP4、WebM 或 MOV。");
+      return;
+    }
+
+    if (file.size > 500 * 1024 * 1024) {
+      alert("影片不能超過 500 MB。");
+      return;
+    }
+
+    gunsyncVideoBtn.disabled = true;
+    gunsyncVideoBtn.textContent = "準備上傳……";
+    gunsyncVideoStatus.textContent = "正在建立大型檔案上傳連線……";
+
+    try {
+      const { data: sessionData, error: sessionError } =
+        await supabaseClient.auth.getSession();
+
+      if (sessionError || !sessionData.session) {
+        throw new Error("登入工作階段已失效，請重新登入後再試。");
+      }
+
+      const projectId = SUPABASE_URL.replace("https://", "").split(".")[0];
+      const uploadUrl =
+        "https://" + projectId + ".storage.supabase.co/storage/v1/upload/resumable";
+      const path = "gunsync/" + crypto.randomUUID() + ext;
+
+      const upload = new tus.Upload(file, {
+        endpoint: uploadUrl,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: "Bearer " + sessionData.session.access_token,
+          "x-upsert": "false"
+        },
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        metadata: {
+          bucketName: "works",
+          objectName: path,
+          contentType: file.type || (ext === ".mp4" ? "video/mp4" : ext === ".mov" ? "video/quicktime" : "video/webm"),
+          cacheControl: "3600"
+        },
+        chunkSize: 6 * 1024 * 1024,
+        onError: error => {
+          console.error(error);
+          gunsyncVideoStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
+          gunsyncVideoBtn.disabled = false;
+          gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
+        },
+        onProgress: (uploaded, total) => {
+          const pct = Math.floor(uploaded / total * 100);
+          gunsyncVideoBtn.textContent = "上傳中 " + pct + "%";
+          gunsyncVideoStatus.textContent = "正在上傳 " + (uploaded / 1024 / 1024).toFixed(1) + " MB / " + (total / 1024 / 1024).toFixed(1) + " MB";
+        },
+        onSuccess: async () => {
+          const { data: existing } = await supabaseClient
+            .from("works")
+            .select("id,storage_path")
+            .eq("category", "gunsync")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const { error: dbError } = await supabaseClient
+            .from("works")
+            .insert({
+              title: "GUNSYNC 展示影片",
+              category: "gunsync",
+              storage_path: path,
+              file_name: file.name,
+              extension: ext.replace(".", ""),
+              mime_type: file.type || (ext === ".mp4" ? "video/mp4" : ext === ".mov" ? "video/quicktime" : "video/webm")
+            });
+
+          if (dbError) {
+            await supabaseClient.storage.from("works").remove([path]);
+            throw new Error("影片資料建立失敗：" + dbError.message);
+          }
+
+          if (existing?.storage_path) {
+            await supabaseClient.storage.from("works").remove([existing.storage_path]);
+            await supabaseClient.from("works").delete().eq("id", existing.id);
+          }
+
+          fileInput.value = "";
+          gunsyncVideoStatus.textContent = "✓ GUNSYNC 展示影片已更新。";
+          gunsyncVideoBtn.disabled = false;
+          gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
+          await loadGunsyncVideo();
+        }
+      });
+
+      upload.start();
+    } catch (error) {
+      console.error(error);
+      gunsyncVideoStatus.textContent = "✕ 上傳失敗：" + (error?.message || error);
+      gunsyncVideoBtn.disabled = false;
+      gunsyncVideoBtn.textContent = "＋ 上傳 GUNSYNC 影片";
+    }
+  });
+
+  // =========================
   // 作品管理
   // =========================
 
@@ -1079,6 +1287,7 @@ orderStatusFilter.addEventListener(
     const { data: works, error } = await supabaseClient
       .from("works")
       .select("id,title,category,storage_path,extension,mime_type,created_at")
+      .neq("category", "gunsync")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1547,6 +1756,7 @@ function createOrderHTML(order) {
   loadOrders();
   loadServices();
   loadWorks();
+  loadGunsyncVideo();
 
 });
 
