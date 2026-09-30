@@ -521,54 +521,39 @@ function escapeAttribute(value) {
 async function loadWorks() {
   const grid = document.getElementById("worksGrid");
   if (!grid) return;
-  const categories = ["video", "music"];
-  const rows = [];
-  for (const category of categories) {
-    const { data, error } = await supabaseClient.storage.from("works").list(category, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-    if (error) { console.error("載入作品失敗：", error); grid.innerHTML = '<div class="work-empty">作品暫時無法載入。</div>'; return; }
-    (data || []).forEach(file => {
-      if (!file.name || file.name.startsWith(".")) return;
-      const separator = file.name.indexOf("__");
-      const encodedTitle = separator >= 0 ? file.name.slice(separator + 2) : file.name;
-      const dot = encodedTitle.lastIndexOf(".");
-      const titlePart = dot >= 0 ? encodedTitle.slice(0, dot) : encodedTitle;
-      const extension = dot >= 0 ? encodedTitle.slice(dot + 1).toLowerCase() : "";
-      let title = titlePart;
-      try {
-        const padded = titlePart.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((titlePart.length + 3) % 4);
-        title = decodeURIComponent(escape(atob(padded)));
-      } catch (_) {
-        try { title = decodeURIComponent(titlePart); } catch (_) {}
-      }
-      const { data: publicData } = supabaseClient.storage.from("works").getPublicUrl(category + "/" + file.name);
-      rows.push({ category, title, extension, url: publicData.publicUrl });
-    });
+
+  const { data: works, error } = await supabaseClient
+    .from("works")
+    .select("id,title,category,storage_path,extension,mime_type,created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("載入作品資料失敗：", error);
+    grid.innerHTML = '<div class="work-empty" style="grid-column:1/-1;">作品暫時無法載入，請確認 Supabase 已建立 works 資料表。</div>';
+    return;
   }
-  if (!rows.length) {
+
+  if (!works || !works.length) {
     grid.innerHTML = '<div class="work-empty" style="grid-column:1/-1;">作品會在這裡展示。</div>';
     return;
   }
-  grid.innerHTML = rows.map(work => {
+
+  grid.innerHTML = works.map(work => {
+    const ext = String(work.extension || "").toLowerCase().replace(/^\./, "");
     const imageExt = ["jpg","jpeg","png","webp","gif"];
     const videoExt = ["mp4","webm","mov","m4v"];
     const audioExt = ["mp3","wav","m4a","ogg","aac","flac"];
-    let media = '<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">查看作品 ↗</a>';
-    if (imageExt.includes(work.extension)) media = '<img class="work-media" src="' + escapeAttribute(work.url) + '" alt="' + escapeAttribute(work.title) + '" loading="lazy">';
-    else if (videoExt.includes(work.extension)) media = '<video class="work-media" controls preload="metadata" src="' + escapeAttribute(work.url) + '"></video>';
-    else if (audioExt.includes(work.extension)) {
-      const audioType = {
-        mp3: "audio/mpeg",
-        wav: "audio/wav",
-        m4a: "audio/mp4",
-        ogg: "audio/ogg",
-        aac: "audio/aac",
-        flac: "audio/flac"
-      }[work.extension] || "audio/*";
-      media =
-        '<audio class="work-media audio" controls preload="metadata">' +
-        '<source src="' + escapeAttribute(work.url) + '" type="' + audioType + '">' +
-        '你的瀏覽器無法播放這個音樂檔案。<a href="' + escapeAttribute(work.url) + '" target="_blank" rel="noopener noreferrer">開啟檔案 ↗</a>' +
-        '</audio>';
+    const { data: publicData } = supabaseClient.storage.from("works").getPublicUrl(work.storage_path);
+    const url = publicData?.publicUrl || "";
+    const mime = work.mime_type || "application/octet-stream";
+
+    let media = '<a href="' + escapeAttribute(url) + '" target="_blank" rel="noopener noreferrer">查看作品 ↗</a>';
+    if (imageExt.includes(ext)) {
+      media = '<img class="work-media" src="' + escapeAttribute(url) + '" alt="' + escapeAttribute(work.title) + '" loading="lazy">';
+    } else if (videoExt.includes(ext)) {
+      media = '<video class="work-media" controls preload="metadata" playsinline src="' + escapeAttribute(url) + '"></video>';
+    } else if (audioExt.includes(ext)) {
+      media = '<audio class="work-media audio" controls preload="metadata"><source src="' + escapeAttribute(url) + '" type="' + escapeAttribute(mime) + '">你的瀏覽器無法播放這個音樂檔案。<a href="' + escapeAttribute(url) + '" target="_blank" rel="noopener noreferrer">開啟檔案 ↗</a></audio>';
     }
     return '<div class="work">' + media + '<div class="work-info"><span>' + (work.category === "video" ? "VIDEO" : "MUSIC") + '</span><h3>' + escapeHtml(work.title) + '</h3></div></div>';
   }).join("");
