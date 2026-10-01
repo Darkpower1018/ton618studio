@@ -1,15 +1,7 @@
-const {createClient}=require("@supabase/supabase-js");
-
 const required=["DISCORD_TOKEN","SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","ORDERS_CHANNEL_ID"];
 for(const key of required){
   if(!process.env[key]) throw new Error(`Missing environment variable: ${key}`);
 }
-
-const supabase=createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {auth:{persistSession:false}}
-);
 
 const DISCORD_API="https://discord.com/api/v10";
 const STATUS={
@@ -40,13 +32,13 @@ function orderLine(o){
 }
 
 async function fetchOrders(){
-  const {data,error}=await supabase
-    .from("orders")
-    .select("id,order_number,customer_name,service,package,price,status,payment_status,created_at")
-    .order("created_at",{ascending:false});
-
-  if(error) throw error;
-  return data||[];
+  const url=new URL("/rest/v1/orders",process.env.SUPABASE_URL);
+  url.searchParams.set("select","id,order_number,customer_name,service,package,price,status,payment_status,created_at");
+  url.searchParams.set("order","created_at.desc");
+  const response=await fetch(url,{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`}});
+  const text=await response.text();
+  if(!response.ok) throw new Error(`Supabase API ${response.status}: ${text}`);
+  return text?JSON.parse(text):[];
 }
 
 function buildEmbed(orders){
