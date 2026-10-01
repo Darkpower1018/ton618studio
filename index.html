@@ -806,6 +806,7 @@ async function loadWorks() {
     .from("works")
     .select("id,title,category,storage_path,extension,mime_type,created_at")
     .not("storage_path", "like", "gunsync/%")
+    .neq("title", "GUNSYNC 展示影片")
     .order("created_at", { ascending: false });
 
   if (error) {
