@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs>
+<radialGradient id="bg"><stop stop-color="#140b25"/><stop offset=".55" stop-color="#07050b"/><stop offset="1" stop-color="#030206"/></radialGradient>
+<linearGradient id="text" x1="0" x2="1"><stop stop-color="#fff"/><stop offset=".58" stop-color="#cba2ff"/><stop offset="1" stop-color="#7d35ff"/></linearGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="13"/></filter><filter id="soft"><feGaussianBlur stdDeviation="28"/></filter>
+</defs>
+<rect width="1200" height="630" fill="url(#bg)"/>
+<g opacity=".5" fill="#fff"><circle cx="88" cy="80" r="1"/><circle cx="210" cy="170" r="1"/><circle cx="1020" cy="92" r="1"/><circle cx="1110" cy="500" r="1"/><circle cx="760" cy="70" r="1"/><circle cx="680" cy="550" r="1"/><circle cx="330" cy="520" r="1"/></g>
+<text x="78" y="82" fill="#a67ce1" font-family="monospace" font-size="15" letter-spacing="5">TON618 STUDIO</text>
+<text x="78" y="190" fill="#f5f1fb" font-family="Arial,'Noto Sans TC',sans-serif" font-size="62" font-weight="800" letter-spacing="-3">你的創作</text>
+<text x="78" y="260" fill="url(#text)" font-family="Arial,'Noto Sans TC',sans-serif" font-size="62" font-weight="800" letter-spacing="-3">由你定義。</text>
+<text x="78" y="325" fill="#a49cab" font-family="Arial,'Noto Sans TC',sans-serif" font-size="19">短影音剪輯 × 編曲 × 音樂發行</text>
+<text x="78" y="360" fill="#817789" font-family="Arial,'Noto Sans TC',sans-serif" font-size="16">讓畫面與聲音，擁有屬於自己的能量。</text>
+<g transform="translate(890 315)">
+<ellipse rx="255" ry="85" fill="none" stroke="#b276ff" stroke-opacity=".22"/>
+<ellipse rx="205" ry="150" transform="rotate(45)" fill="none" stroke="#fff" stroke-opacity=".07"/>
+<ellipse rx="235" ry="78" transform="rotate(-17)" fill="none" stroke="#7d35ff" stroke-opacity=".35" stroke-width="16" filter="url(#blur)"/>
+<ellipse rx="210" ry="68" transform="rotate(-17)" fill="none" stroke="#d98cff" stroke-opacity=".8" stroke-width="22" filter="url(#blur)"/>
+<ellipse rx="165" ry="54" transform="rotate(-17)" fill="none" stroke="#fff1ff" stroke-opacity=".9" stroke-width="9" filter="url(#blur)"/>
+<circle r="108" fill="#000"/><circle r="120" fill="none" stroke="#8c45ff" stroke-opacity=".14" stroke-width="28" filter="url(#soft)"/>
+</g>
+<text x="78" y="555" fill="#665d70" font-family="monospace" font-size="12" letter-spacing="3">CREATIVE • EDITING • MUSIC • DISTRIBUTION</text>
+</svg>
