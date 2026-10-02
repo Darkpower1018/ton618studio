@@ -430,6 +430,15 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
     padding:28px 18px;
   }
 }
+
+/* 客戶帳號 */
+.account-bar{display:flex;align-items:center;gap:10px;margin-left:auto}
+.account-btn{border:1px solid #ffffff1c;background:#08070b;color:#eee;border-radius:999px;padding:9px 14px;font-size:11px;cursor:pointer}
+.account-btn:hover{border-color:#a35cff66}
+.account-panel{position:fixed;top:86px;right:5vw;width:min(390px,calc(100vw - 36px));z-index:100;background:#09070d;border:1px solid #ffffff18;box-shadow:0 25px 80px #000b;padding:24px;display:none}
+.account-panel.open{display:block}.account-panel h3{margin:0 0 8px;font-size:24px}.account-panel p{color:#817789;font-size:12px;line-height:1.8}.account-panel label{display:flex;flex-direction:column;gap:7px;color:#817789;font:10px monospace;margin-top:12px}.account-panel input{background:#050407;border:1px solid #ffffff16;color:#eee;padding:12px;border-radius:3px;outline:0}.account-actions{display:flex;gap:8px;margin-top:16px}.account-actions button{flex:1}.discount-box{margin-top:14px;padding:14px;border:1px solid #a467ff33;background:#a467ff0b;color:#cbb0ff;font-size:12px;line-height:1.8}.discount-box strong{color:#fff}.account-status{min-height:18px;color:#a779d2;font-size:11px;margin-top:12px}
+.order-price-preview{grid-column:1/-1;padding:12px 14px;border:1px solid #ffffff12;background:#08070b;color:#817789;font-size:12px;line-height:1.8}.order-price-preview strong{color:#fff}
+@media(max-width:600px){.account-bar{position:absolute;right:18px;top:14px}.account-panel{top:140px;right:18px}.account-actions{flex-direction:column}.order-price-preview{grid-column:auto}}
 </style>
 </head>
 
@@ -444,7 +453,21 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
     <a href="#order">下單</a>
     <a href="#lookup">查詢訂單</a>
   </nav>
+  <div class="account-bar"><button type="button" class="account-btn" id="accountBtn">登入 / 註冊</button></div>
 </header>
+
+<div class="account-panel" id="accountPanel">
+  <h3 id="accountTitle">會員登入</h3>
+  <p id="accountIntro">登入後可以查看你的專屬優惠，並在下單時自動套用。</p>
+  <form id="accountForm">
+    <label>Email<input type="email" id="accountEmail" required autocomplete="email"></label>
+    <label>密碼<input type="password" id="accountPassword" required autocomplete="current-password" minlength="6"></label>
+    <div class="account-actions"><button type="submit" class="account-btn" id="accountSubmit">登入</button><button type="button" class="account-btn" id="accountMode">建立帳號</button></div>
+  </form>
+  <div class="account-status" id="accountStatus"></div>
+  <div id="discountBox"></div>
+  <button type="button" class="account-btn" id="accountLogout" style="display:none;margin-top:12px;width:100%;">登出</button>
+</div>
 <script>
 (function(){
   const logoEl = document.getElementById("siteLogo");
@@ -582,6 +605,8 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
         可不上傳。直接上傳時，檔案會存到私人素材空間，管理員登入後才能查看。
       </div>
 
+      <div class="order-price-preview" id="orderPricePreview">登入後如有專屬優惠，系統會自動套用。<br>目前選擇方案價格：<strong id="orderOriginalPrice">—</strong></div>
+
       <button type="submit" id="submitBtn">
         提交委託 ↗
       </button>
@@ -658,6 +683,90 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY
 );
+
+let currentUser = null;
+let currentDiscount = null;
+const accountBtn = document.getElementById("accountBtn");
+const accountPanel = document.getElementById("accountPanel");
+const accountForm = document.getElementById("accountForm");
+const accountMode = document.getElementById("accountMode");
+const accountSubmit = document.getElementById("accountSubmit");
+const accountStatus = document.getElementById("accountStatus");
+const accountTitle = document.getElementById("accountTitle");
+const accountIntro = document.getElementById("accountIntro");
+const accountLogout = document.getElementById("accountLogout");
+const discountBox = document.getElementById("discountBox");
+const orderPricePreview = document.getElementById("orderPricePreview");
+const orderOriginalPrice = document.getElementById("orderOriginalPrice");
+let accountSignupMode = false;
+
+function formatDiscount(discount, originalPrice) {
+  if (!discount) return { amount:0, label:"" };
+  const value = Number(discount.value || 0);
+  const amount = discount.type === "percent" ? originalPrice * Math.min(value,100) / 100 : Math.min(value, originalPrice);
+  return { amount:Math.round(amount*100)/100, label:discount.type === "percent" ? value + "% OFF" : "HKD -$" + value.toFixed(2) };
+}
+
+function updateAccountUI() {
+  if (currentUser) {
+    accountBtn.textContent = currentUser.email ? "會員｜" + currentUser.email.split("@")[0] : "會員中心";
+    accountTitle.textContent = "會員中心";
+    accountIntro.textContent = "已登入：" + currentUser.email;
+    accountForm.style.display = "none";
+    accountMode.style.display = "none";
+    accountLogout.style.display = "block";
+    accountStatus.textContent = "";
+    if (currentDiscount) {
+      const exp = currentDiscount.expires_at ? new Date(currentDiscount.expires_at).toLocaleDateString("zh-HK") : "永久";
+      discountBox.innerHTML = '<div class="discount-box">🎁 你的專屬優惠：<strong>' + escapeHtml(currentDiscount.type === "percent" ? Number(currentDiscount.value) + "% OFF" : "HKD -$" + Number(currentDiscount.value).toFixed(2)) + '</strong><br>有效期：' + escapeHtml(exp) + '</div>';
+    } else discountBox.innerHTML = '<div class="discount-box">目前沒有可用的專屬優惠。</div>';
+  } else {
+    accountBtn.textContent = "登入 / 註冊";
+    accountTitle.textContent = accountSignupMode ? "建立會員帳號" : "會員登入";
+    accountIntro.textContent = "登入後可以查看你的專屬優惠，並在下單時自動套用。";
+    accountForm.style.display = "block";
+    accountMode.style.display = "block";
+    accountMode.textContent = accountSignupMode ? "返回登入" : "建立帳號";
+    accountSubmit.textContent = accountSignupMode ? "註冊" : "登入";
+    accountLogout.style.display = "none";
+    discountBox.innerHTML = "";
+  }
+}
+
+async function loadCustomerDiscount() {
+  currentDiscount = null;
+  if (!currentUser) { updateAccountUI(); return; }
+  const { data, error } = await supabaseClient.from("discounts").select("id,type,value,expires_at,note").eq("user_id", currentUser.id).eq("active", true).order("created_at", {ascending:false}).limit(1).maybeSingle();
+  if (!error && data && (!data.expires_at || new Date(data.expires_at) > new Date())) currentDiscount = data;
+  updateAccountUI();
+  updateOrderPricePreview();
+}
+
+function updateOrderPricePreview() {
+  if (!orderPricePreview || !serviceSelect) return;
+  const value = serviceSelect.value || "";
+  const match = value.match(/HKD \\$([0-9.]+)/);
+  if (!match) { orderOriginalPrice.textContent = "—"; orderPricePreview.innerHTML = "登入後如有專屬優惠，系統會自動套用。"; return; }
+  const original = Number(match[1]);
+  orderOriginalPrice.textContent = "HKD $" + original.toFixed(2);
+  if (!currentDiscount) { orderPricePreview.innerHTML = "原價：<strong>HKD $" + original.toFixed(2) + "</strong>"; return; }
+  const d = formatDiscount(currentDiscount, original);
+  orderPricePreview.innerHTML = "原價：<strong>HKD $" + original.toFixed(2) + "</strong><br>🎁 優惠：<strong>" + escapeHtml(d.label) + "</strong><br>優惠後：<strong>HKD $" + (original-d.amount).toFixed(2) + "</strong>";
+}
+
+accountBtn.addEventListener("click",()=>{accountPanel.classList.toggle("open");});
+accountMode.addEventListener("click",()=>{accountSignupMode=!accountSignupMode; accountStatus.textContent=""; updateAccountUI();});
+accountForm.addEventListener("submit",async e=>{
+  e.preventDefault(); accountSubmit.disabled=true; accountStatus.textContent=accountSignupMode?"建立帳號中……":"登入中……";
+  const email=document.getElementById("accountEmail").value.trim(); const password=document.getElementById("accountPassword").value;
+  const result=accountSignupMode ? await supabaseClient.auth.signUp({email,password}) : await supabaseClient.auth.signInWithPassword({email,password});
+  if(result.error){accountStatus.textContent="✕ "+result.error.message; accountSubmit.disabled=false; return;}
+  if(accountSignupMode && !result.data.session){accountStatus.textContent="✓ 註冊成功，請到 Email 完成驗證後再登入。"; accountSubmit.disabled=false; return;}
+  currentUser=result.data.user; accountSignupMode=false; accountSubmit.disabled=false; await loadCustomerDiscount(); accountPanel.classList.add("open");
+});
+accountLogout.addEventListener("click",async()=>{await supabaseClient.auth.signOut();currentUser=null;currentDiscount=null;updateAccountUI();updateOrderPricePreview();});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;loadCustomerDiscount();});
+
 
 
 /* ================================
@@ -940,6 +1049,7 @@ loadWorks();
 
 loadOrderServices();
 const serviceSelect = document.getElementById("service");
+serviceSelect?.addEventListener("change", updateOrderPricePreview);
 const orderForm = document.getElementById("orderForm");
 const statusText = document.getElementById("status");
 const submitButton = document.getElementById("submitBtn");
@@ -954,6 +1064,7 @@ document.addEventListener("click", event => {
   if (!button) return;
 
   serviceSelect.value = button.dataset.service;
+  updateOrderPricePreview();
 
   document
     .getElementById("order")
@@ -1078,7 +1189,8 @@ orderForm.addEventListener("submit", async event => {
         details,
         materials,
         materialPath
-      })
+      }),
+      ...(currentUser ? { headers: { "Authorization": "Bearer " + (await supabaseClient.auth.getSession()).data.session?.access_token } } : {})
     });
 
     const result = await response.json();
