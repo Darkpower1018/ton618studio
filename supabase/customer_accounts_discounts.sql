@@ -71,13 +71,6 @@ on public.profiles for select
 to authenticated
 using (public.is_admin() or auth.uid() = id);
 
-drop policy if exists "users can update own profile" on public.profiles;
-create policy "users can update own profile"
-on public.profiles for update
-to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
-
 drop policy if exists "users can read own discounts" on public.discounts;
 create policy "users can read own discounts"
 on public.discounts for select
