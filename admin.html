@@ -1018,39 +1018,88 @@
     accountSearchBtn.textContent = "搜尋中……";
     accountSearchResults.innerHTML = '<div class="status">搜尋帳號中……</div>';
 
-    const { data, error } = await supabaseClient
+    const { data: profiles, error: profileError } = await supabaseClient
       .from("profiles")
       .select("id,email,display_name,created_at")
       .ilike("email", "%" + keyword + "%")
       .order("created_at", { ascending: false })
       .limit(20);
 
-    accountSearchBtn.disabled = false;
-    accountSearchBtn.textContent = "搜尋";
-
-    if (error) {
-      console.error(error);
+    if (profileError) {
+      console.error(profileError);
+      accountSearchBtn.disabled = false;
+      accountSearchBtn.textContent = "搜尋";
       accountSearchResults.innerHTML =
-        '<div class="status">搜尋失敗：' + escapeHtml(error.message) + '</div>';
+        '<div class="status">搜尋失敗：' + escapeHtml(profileError.message) + '</div>';
       return;
     }
 
-    if (!data?.length) {
+    if (!profiles?.length) {
+      accountSearchBtn.disabled = false;
+      accountSearchBtn.textContent = "搜尋";
       accountSearchResults.innerHTML =
         '<div class="empty" style="padding:20px 10px;">找不到符合的帳號。</div>';
       return;
     }
 
-    accountSearchResults.innerHTML = data.map(profile => {
+    const ids = profiles.map(profile => profile.id);
+
+    const { data: discounts, error: discountError } = await supabaseClient
+      .from("discounts")
+      .select("id,user_id,type,value,active,expires_at,note,created_at")
+      .in("user_id", ids)
+      .order("created_at", { ascending: false });
+
+    accountSearchBtn.disabled = false;
+    accountSearchBtn.textContent = "搜尋";
+
+    if (discountError) {
+      console.error(discountError);
+      accountSearchResults.innerHTML =
+        '<div class="status">優惠資料載入失敗：' + escapeHtml(discountError.message) + '</div>';
+      return;
+    }
+
+    const discountMap = {};
+    (discounts || []).forEach(discount => {
+      if (!discountMap[discount.user_id]) discountMap[discount.user_id] = [];
+      discountMap[discount.user_id].push(discount);
+    });
+
+    accountSearchResults.innerHTML = profiles.map(profile => {
       const email = profile.email || profile.id;
-      const name = profile.display_name ? "｜" + profile.display_name : "";
-      return '<button type="button" class="account-search-result" data-email="' +
-        escapeAttribute(email) +
-        '" style="display:block;width:100%;text-align:left;margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.04);color:#f4f1fa;cursor:pointer;">' +
-        '<strong>' + escapeHtml(email) + '</strong>' +
-        '<span style="display:block;margin-top:4px;color:#8e8998;font-size:12px;">' +
-        escapeHtml(name ? name.slice(1) : "帳號") +
-        '</span></button>';
+      const accountDiscounts = discountMap[profile.id] || [];
+
+      const discountHtml = accountDiscounts.length
+        ? accountDiscounts.map(d => {
+            const value = d.type === "percent"
+              ? Number(d.value) + "% OFF"
+              : "HKD -$" + Number(d.value).toFixed(2);
+            const exp = d.expires_at
+              ? new Date(d.expires_at).toLocaleString("zh-HK")
+              : "永久";
+
+            return '<div class="card" style="margin-top:10px;padding:14px 16px;">' +
+              '<strong>' + escapeHtml(value) + '</strong>' +
+              '<div class="muted" style="margin-top:7px;">' +
+              escapeHtml(d.active ? "啟用" : "停用") +
+              '｜到期：' + escapeHtml(exp) +
+              (d.note ? '<br>備註：' + escapeHtml(d.note) : '') +
+              '</div>' +
+              '<button type="button" class="toggle-discount-btn" data-discount-id="' +
+              escapeAttribute(d.id) +
+              '" data-active="' + escapeAttribute(d.active) +
+              '" style="margin-top:12px;">' +
+              (d.active ? "停用優惠" : "啟用優惠") +
+              '</button>' +
+              '</div>';
+          }).join("")
+        : '<div class="muted" style="margin-top:10px;">目前沒有優惠。</div>';
+
+      return '<div class="card" style="margin-top:10px;padding:16px;">' +
+        '<strong style="font-size:15px;">' + escapeHtml(email) + '</strong>' +
+        discountHtml +
+        '</div>';
     }).join("");
   }
 
@@ -1062,23 +1111,6 @@
       searchAccounts();
     }
   });
-
-  document.addEventListener("click", event => {
-    const result = event.target.closest(".account-search-result");
-    if (!result) return;
-
-    const emailInput = document.getElementById("discountEmail");
-    if (emailInput) {
-      emailInput.value = result.dataset.email || "";
-      emailInput.focus();
-    }
-
-    if (accountSearchResults) {
-      accountSearchResults.innerHTML =
-        '<div class="status">✓ 已選擇帳號：' + escapeHtml(result.dataset.email || "") + '</div>';
-    }
-  });
-
 
   // =========================
   // 登入
