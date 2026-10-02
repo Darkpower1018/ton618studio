@@ -52,11 +52,24 @@ on public.profiles for select
 to authenticated
 using (auth.uid() = id);
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
+$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
+
 drop policy if exists "admins can read all profiles" on public.profiles;
 create policy "admins can read all profiles"
 on public.profiles for select
 to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin() or auth.uid() = id);
 
 drop policy if exists "users can update own profile" on public.profiles;
 create policy "users can update own profile"
@@ -79,8 +92,8 @@ drop policy if exists "admins can manage discounts" on public.discounts;
 create policy "admins can manage discounts"
 on public.discounts for all
 to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin())
+with check (public.is_admin());
 
 -- 執行完成後，把你自己的管理員帳號升級（把 Email 換成你的 Admin Email）：
 -- update public.profiles set role = 'admin' where email = 'YOUR_ADMIN_EMAIL';
