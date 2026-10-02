@@ -13,7 +13,7 @@ body:before{content:"";position:fixed;inset:0;z-index:-3;background:radial-gradi
 .stars{position:fixed;inset:0;z-index:-2;opacity:.55;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#a96cff 1px,transparent 1px),radial-gradient(#fff 1px,transparent 1px);background-size:173px 211px,257px 319px,391px 287px;background-position:20px 30px,70px 100px,130px 40px}
 .grid{position:fixed;inset:0;z-index:-1;opacity:.08;background-image:linear-gradient(rgba(180,120,255,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(180,120,255,.25) 1px,transparent 1px);background-size:80px 80px;mask-image:linear-gradient(to bottom,black,transparent 75%)}
 header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;border-bottom:1px solid rgba(200,160,255,.12);background:rgba(3,2,6,.72);backdrop-filter:blur(20px)}
-.logo{font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:10px}.logo img{display:block;width:auto;height:40px;max-width:220px;object-fit:contain}.logo-fallback{display:inline-flex;align-items:center}
+.logo{font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:10px;min-height:52px}.logo img{display:block;width:auto;height:52px;max-width:280px;object-fit:contain}.logo-fallback{display:inline-flex;align-items:center}
 .logo span{display:inline-block;width:9px;height:9px;border-radius:50%;background:#000;margin-right:10px;box-shadow:0 0 0 3px #8d4dff55,0 0 18px #9b55ff}
 .main-nav{display:flex;align-items:center;gap:42px}
 .main-nav a{padding:8px 4px;white-space:nowrap;color:#aaa2b4;text-decoration:none;font-size:12px;letter-spacing:.14em}
@@ -192,7 +192,13 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
   .logo{
     font-size:14px;
     line-height:20px;
+    min-height:44px;
     flex-shrink:0;
+  }
+
+  .logo img{
+    height:44px;
+    max-width:240px;
   }
 
   .main-nav{
@@ -421,7 +427,7 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 <div class="grid"></div>
 
 <header>
-  <div class="logo" id="siteLogo"><span></span>能量工作室</div>
+  <div class="logo" id="siteLogo" aria-label="能量工作室"><img src="https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=initial" alt="能量工作室" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend','<span></span>能量工作室')"></div>
   <nav class="main-nav" id="serviceNav">
     <a href="#services">服務</a>
     <a href="#order">下單</a>
@@ -431,14 +437,9 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 <script>
 (function(){
   const logoEl = document.getElementById("siteLogo");
-  if (!logoEl) return;
-  const url = "https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=" + Date.now();
-  const img = new Image();
-  img.onload = function(){
-    logoEl.innerHTML = '<img src="' + url + '" alt="能量工作室">';
-  };
-  img.onerror = function(){};
-  img.src = url;
+  const img = logoEl?.querySelector("img");
+  if (!logoEl || !img) return;
+  img.src = "https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=" + Date.now();
 })();
 </script>
 
