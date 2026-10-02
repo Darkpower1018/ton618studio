@@ -437,8 +437,8 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 .account-btn:hover{border-color:#a35cff66}
 .account-panel{position:fixed;top:86px;right:5vw;width:min(390px,calc(100vw - 36px));z-index:100;background:#09070d;border:1px solid #ffffff18;box-shadow:0 25px 80px #000b;padding:24px;display:none}
 .account-panel.open{display:block}.account-panel h3{margin:0 0 8px;font-size:24px}.account-panel p{color:#817789;font-size:12px;line-height:1.8}.account-panel label{display:flex;flex-direction:column;gap:7px;color:#817789;font:10px monospace;margin-top:12px}.account-panel input{background:#050407;border:1px solid #ffffff16;color:#eee;padding:12px;border-radius:3px;outline:0}.account-actions{display:flex;gap:8px;margin-top:16px}.account-actions button{flex:1}.discount-box{margin-top:14px;padding:14px;border:1px solid #a467ff33;background:#a467ff0b;color:#cbb0ff;font-size:12px;line-height:1.8}.discount-box strong{color:#fff}.account-status{min-height:18px;color:#a779d2;font-size:11px;margin-top:12px}
-.order-price-preview{grid-column:1/-1;padding:12px 14px;border:1px solid #ffffff12;background:#08070b;color:#817789;font-size:12px;line-height:1.8}.order-price-preview strong{color:#fff}
-@media(max-width:600px){.account-bar{position:absolute;right:18px;top:14px}.account-panel{top:140px;right:18px}.account-actions{flex-direction:column}.order-price-preview{grid-column:auto}}
+.order-price-preview{grid-column:1/-1;padding:12px 14px;border:1px solid #ffffff12;background:#08070b;color:#817789;font-size:12px;line-height:1.8}.order-price-preview strong{color:#fff}.coupon-box{grid-column:1/-1;display:flex;gap:8px;align-items:stretch}.coupon-box input{flex:1;min-width:0}.coupon-box button{width:auto!important;padding:12px 16px!important;border:1px solid #ffffff1c!important;background:#08070b!important;color:#eee!important;font-weight:600!important}.coupon-box button:hover{background:#fff!important;color:#09070d!important}.coupon-status{grid-column:1/-1;min-height:18px;font-size:11px;color:#a779d2}.coupon-status.error{color:#ff9ba5}
+@media(max-width:600px){.account-bar{position:absolute;right:18px;top:14px}.account-panel{top:140px;right:18px}.account-actions{flex-direction:column}.order-price-preview{grid-column:auto}.coupon-box,.coupon-status{grid-column:auto}.coupon-box{flex-direction:column}.coupon-box button{width:100%!important}}
 </style>
 </head>
 
@@ -605,7 +605,13 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
         可不上傳。直接上傳時，檔案會存到私人素材空間，管理員登入後才能查看。
       </div>
 
-      <div class="order-price-preview" id="orderPricePreview">登入後如有專屬優惠，系統會自動套用。<br>目前選擇方案價格：<strong id="orderOriginalPrice">—</strong></div>
+      <div class="order-price-preview" id="orderPricePreview">目前選擇方案價格：<strong id="orderOriginalPrice">—</strong></div>
+
+      <div class="coupon-box">
+        <input type="text" id="couponCodeInput" placeholder="有優惠碼？輸入優惠碼" autocomplete="off" maxlength="40">
+        <button type="button" id="applyCouponBtn">套用優惠碼</button>
+      </div>
+      <div class="coupon-status" id="couponStatus"></div>
 
       <button type="submit" id="submitBtn">
         提交委託 ↗
@@ -686,6 +692,7 @@ const supabaseClient = window.supabase.createClient(
 
 let currentUser = null;
 let currentDiscount = null;
+let currentCoupon = null;
 const accountBtn = document.getElementById("accountBtn");
 const accountPanel = document.getElementById("accountPanel");
 const accountForm = document.getElementById("accountForm");
@@ -698,6 +705,9 @@ const accountLogout = document.getElementById("accountLogout");
 const discountBox = document.getElementById("discountBox");
 const orderPricePreview = document.getElementById("orderPricePreview");
 const orderOriginalPrice = document.getElementById("orderOriginalPrice");
+const couponCodeInput = document.getElementById("couponCodeInput");
+const applyCouponBtn = document.getElementById("applyCouponBtn");
+const couponStatus = document.getElementById("couponStatus");
 let accountSignupMode = false;
 
 function formatDiscount(discount, originalPrice) {
@@ -746,13 +756,107 @@ function updateOrderPricePreview() {
   if (!orderPricePreview || !serviceSelect) return;
   const value = serviceSelect.value || "";
   const match = value.match(/HKD \$([0-9.]+)/);
-  if (!match) { orderOriginalPrice.textContent = "—"; orderPricePreview.innerHTML = "登入後如有專屬優惠，系統會自動套用。"; return; }
+
+  if (!match) {
+    orderOriginalPrice.textContent = "—";
+    orderPricePreview.innerHTML = "請先選擇服務套餐。";
+    return;
+  }
+
   const original = Number(match[1]);
   orderOriginalPrice.textContent = "HKD $" + original.toFixed(2);
-  if (!currentDiscount) { orderPricePreview.innerHTML = "原價：<strong>HKD $" + original.toFixed(2) + "</strong>"; return; }
-  const d = formatDiscount(currentDiscount, original);
-  orderPricePreview.innerHTML = "原價：<strong>HKD $" + original.toFixed(2) + "</strong><br>🎁 優惠：<strong>" + escapeHtml(d.label) + "</strong><br>優惠後：<strong>HKD $" + (original-d.amount).toFixed(2) + "</strong>";
+
+  const accountD = currentDiscount ? formatDiscount(currentDiscount, original) : {amount:0,label:""};
+  const couponAmount = currentCoupon ? Number(currentCoupon.discount_amount || 0) : 0;
+  const useCoupon = couponAmount > accountD.amount;
+  const discountAmount = useCoupon ? couponAmount : accountD.amount;
+
+  if (!discountAmount) {
+    orderPricePreview.innerHTML = "原價：<strong>HKD $" + original.toFixed(2) + "</strong>";
+    return;
+  }
+
+  const label = useCoupon
+    ? "優惠碼 " + currentCoupon.code + "｜-" + couponAmount.toFixed(2)
+    : "專屬優惠｜" + accountD.label;
+
+  const note = currentCoupon && accountD.amount > couponAmount
+    ? "<br><span style=\"color:#777080\">你的專屬優惠較優惠碼折扣高，系統會自動使用專屬優惠。</span>"
+    : "";
+
+  orderPricePreview.innerHTML =
+    "原價：<strong>HKD $" + original.toFixed(2) + "</strong><br>" +
+    "🎁 優惠：<strong>" + escapeHtml(label) + "</strong><br>" +
+    "優惠後：<strong>HKD $" + (original - discountAmount).toFixed(2) + "</strong>" + note;
 }
+
+async function validateCouponCode() {
+  const code = couponCodeInput?.value.trim().toUpperCase() || "";
+  currentCoupon = null;
+
+  if (!code) {
+    if (couponStatus) {
+      couponStatus.textContent = "";
+      couponStatus.classList.remove("error");
+    }
+    updateOrderPricePreview();
+    return true;
+  }
+
+  if (!serviceSelect?.value) {
+    if (couponStatus) {
+      couponStatus.textContent = "請先選擇服務套餐，再套用優惠碼。";
+      couponStatus.classList.add("error");
+    }
+    return false;
+  }
+
+  applyCouponBtn.disabled = true;
+  applyCouponBtn.textContent = "驗證中……";
+  couponStatus.classList.remove("error");
+  couponStatus.textContent = "";
+
+  try {
+    const session = (await supabaseClient.auth.getSession()).data.session;
+    const response = await fetch("/api/validate-coupon", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session ? {"Authorization":"Bearer " + session.access_token} : {})
+      },
+      body: JSON.stringify({
+        code,
+        service: serviceSelect.value
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "優惠碼無效。");
+
+    currentCoupon = result;
+    couponStatus.textContent = "✓ 優惠碼已套用：" + result.code;
+    updateOrderPricePreview();
+    return true;
+  } catch (error) {
+    currentCoupon = null;
+    couponStatus.textContent = "✕ " + error.message;
+    couponStatus.classList.add("error");
+    updateOrderPricePreview();
+    return false;
+  } finally {
+    applyCouponBtn.disabled = false;
+    applyCouponBtn.textContent = "套用優惠碼";
+  }
+}
+
+applyCouponBtn?.addEventListener("click", validateCouponCode);
+couponCodeInput?.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    validateCouponCode();
+  }
+});
+
 
 accountBtn.addEventListener("click",()=>{accountPanel.classList.toggle("open");});
 accountMode.addEventListener("click",()=>{accountSignupMode=!accountSignupMode; accountStatus.textContent=""; updateAccountUI();});
@@ -1049,7 +1153,7 @@ loadWorks();
 
 loadOrderServices();
 const serviceSelect = document.getElementById("service");
-serviceSelect?.addEventListener("change", updateOrderPricePreview);
+serviceSelect?.addEventListener("change", async () => { updateOrderPricePreview(); if (couponCodeInput?.value.trim()) await validateCouponCode(); });
 const orderForm = document.getElementById("orderForm");
 const statusText = document.getElementById("status");
 const submitButton = document.getElementById("submitBtn");
@@ -1130,6 +1234,12 @@ orderForm.addEventListener("submit", async event => {
     const service = formData.get("service");
     const details = formData.get("details")?.trim();
     const materials = formData.get("materials")?.trim() || "";
+    const couponCode = couponCodeInput?.value.trim().toUpperCase() || "";
+
+    if (couponCode && !currentCoupon) {
+      const valid = await validateCouponCode();
+      if (!valid) throw new Error("請先套用有效的優惠碼。");
+    }
 
   const packageInfo = await getPackageInfo(service);
 
@@ -1189,7 +1299,8 @@ orderForm.addEventListener("submit", async event => {
         service,
         details,
         materials,
-        materialPath
+        materialPath,
+        couponCode
       })
     });
 
