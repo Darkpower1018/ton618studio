@@ -63,6 +63,16 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .service-head{position:relative;z-index:1}
 .service-head .icon{font-size:42px;margin:34px 0 12px;color:#a467ff}
 .service-head h3{font-size:32px;margin:0 0 10px}
+.service-head .muted{
+  max-height:260px;
+  overflow-y:auto;
+  padding-right:12px;
+  scrollbar-width:thin;
+}
+.service-head .muted::-webkit-scrollbar{width:5px}
+.service-head .muted::-webkit-scrollbar-track{background:transparent}
+.service-head .muted::-webkit-scrollbar-thumb{background:#ffffff22;border-radius:99px}
+.service-head .muted::-webkit-scrollbar-thumb:hover{background:#a35cff66}
 .gunsync-block{grid-template-columns:1.35fr .65fr;grid-template-rows:auto 1fr;align-items:start}
 .gunsync-block>.service-head{grid-column:1;grid-row:1}
 .gunsync-left{min-width:0;grid-column:1;grid-row:2}.gunsync-media-column{position:relative;z-index:1;display:flex;flex-direction:column;gap:18px;margin-top:18px}.gunsync-prices{position:relative;z-index:1;grid-column:2;grid-row:1 / span 2}.gunsync-price-title{font-size:24px;margin:8px 0 18px}.gunsync-prices .service-prices{grid-template-columns:1fr}
@@ -304,6 +314,7 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
   .service-head .muted{
     font-size:12px;
     line-height:1.8;
+    max-height:220px;
   }
 
   .service-head .tags{
