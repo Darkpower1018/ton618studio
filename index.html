@@ -466,6 +466,18 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
     <div class="account-actions"><button type="submit" class="account-btn" id="accountSubmit">登入</button><button type="button" class="account-btn" id="accountMode">建立帳號</button></div>
   </form>
   <div class="account-status" id="accountStatus"></div>
+  <div id="accountInfo" style="display:none;">
+    <div class="account-info-row" style="margin-top:14px;padding:13px 14px;border:1px solid #ffffff12;background:#08070b;">
+      <div style="font-size:10px;color:#817789;letter-spacing:.08em;">目前暱稱</div>
+      <div id="accountCurrentNickname" style="margin-top:6px;color:#fff;font-size:14px;">—</div>
+    </div>
+    <label>修改暱稱
+      <input type="text" id="accountNicknameEdit" maxlength="40" autocomplete="nickname" placeholder="輸入新的暱稱">
+    </label>
+    <div class="account-actions">
+      <button type="button" class="account-btn" id="saveNicknameBtn">儲存暱稱</button>
+    </div>
+  </div>
   <div id="discountBox"></div>
   <button type="button" class="account-btn" id="accountLogout" style="display:none;margin-top:12px;width:100%;">登出</button>
 </div>
@@ -706,6 +718,10 @@ const accountIntro = document.getElementById("accountIntro");
 const accountLogout = document.getElementById("accountLogout");
 const accountNicknameLabel = document.getElementById("accountNicknameLabel");
 const accountNickname = document.getElementById("accountNickname");
+const accountInfo = document.getElementById("accountInfo");
+const accountCurrentNickname = document.getElementById("accountCurrentNickname");
+const accountNicknameEdit = document.getElementById("accountNicknameEdit");
+const saveNicknameBtn = document.getElementById("saveNicknameBtn");
 const orderNicknameLabel = document.getElementById("orderNicknameLabel");
 const discountBox = document.getElementById("discountBox");
 const orderPricePreview = document.getElementById("orderPricePreview");
@@ -731,6 +747,9 @@ function updateAccountUI() {
     accountForm.style.display = "none";
     accountMode.style.display = "none";
     accountLogout.style.display = "block";
+    accountInfo.style.display = "block";
+    accountCurrentNickname.textContent = currentProfile?.display_name || "未設定";
+    accountNicknameEdit.value = currentProfile?.display_name || "";
     accountStatus.textContent = "";
     if (accountNicknameLabel) accountNicknameLabel.style.display = "none";
     if (orderNicknameLabel) {
@@ -752,6 +771,7 @@ function updateAccountUI() {
     accountMode.textContent = accountSignupMode ? "返回登入" : "建立帳號";
     accountSubmit.textContent = accountSignupMode ? "註冊" : "登入";
     accountLogout.style.display = "none";
+    accountInfo.style.display = "none";
     if (accountNicknameLabel) accountNicknameLabel.style.display = accountSignupMode ? "block" : "none";
     if (orderNicknameLabel) {
       const input = orderNicknameLabel.querySelector("input");
@@ -926,6 +946,48 @@ supabaseClient.auth.onAuthStateChange(async (_event,session)=>{
   await loadCustomerDiscount();
   updateAccountUI();
   updateOrderPricePreview();
+});
+
+saveNicknameBtn?.addEventListener("click", async () => {
+  if (!currentUser) return;
+  const nickname = accountNicknameEdit.value.trim();
+  if (!nickname) {
+    accountStatus.textContent = "✕ 暱稱不能留空。";
+    return;
+  }
+
+  saveNicknameBtn.disabled = true;
+  saveNicknameBtn.textContent = "儲存中……";
+  accountStatus.textContent = "";
+
+  try {
+    const { error: authError } = await supabaseClient.auth.updateUser({
+      data: { display_name: nickname }
+    });
+    if (authError) throw authError;
+
+    const { error: profileError } = await supabaseClient
+      .from("profiles")
+      .update({ display_name: nickname })
+      .eq("id", currentUser.id);
+
+    if (profileError) throw profileError;
+
+    currentProfile = {
+      ...(currentProfile || {}),
+      display_name: nickname
+    };
+
+    updateAccountUI();
+    updateOrderPricePreview();
+    accountStatus.textContent = "✓ 暱稱已更新。";
+  } catch (error) {
+    console.error(error);
+    accountStatus.textContent = "✕ 暱稱更新失敗：" + error.message;
+  } finally {
+    saveNicknameBtn.disabled = false;
+    saveNicknameBtn.textContent = "儲存暱稱";
+  }
 });
 
 
