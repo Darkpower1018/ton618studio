@@ -13,7 +13,7 @@ body:before{content:"";position:fixed;inset:0;z-index:-3;background:radial-gradi
 .stars{position:fixed;inset:0;z-index:-2;opacity:.55;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#a96cff 1px,transparent 1px),radial-gradient(#fff 1px,transparent 1px);background-size:173px 211px,257px 319px,391px 287px;background-position:20px 30px,70px 100px,130px 40px}
 .grid{position:fixed;inset:0;z-index:-1;opacity:.08;background-image:linear-gradient(rgba(180,120,255,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(180,120,255,.25) 1px,transparent 1px);background-size:80px 80px;mask-image:linear-gradient(to bottom,black,transparent 75%)}
 header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;border-bottom:1px solid rgba(200,160,255,.12);background:rgba(3,2,6,.72);backdrop-filter:blur(20px)}
-.logo{font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:10px;min-height:52px}.logo img{display:block;width:auto;height:64px;max-width:340px;object-fit:contain}.logo-fallback{display:inline-flex;align-items:center}
+.logo{font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:10px;min-height:52px}.logo img{display:block;width:auto;height:72px;max-width:380px;object-fit:contain}.logo-fallback{display:inline-flex;align-items:center}
 .logo span{display:inline-block;width:9px;height:9px;border-radius:50%;background:#000;margin-right:10px;box-shadow:0 0 0 3px #8d4dff55,0 0 18px #9b55ff}
 .main-nav{display:flex;align-items:center;gap:42px}
 .main-nav a{padding:8px 4px;white-space:nowrap;color:#aaa2b4;text-decoration:none;font-size:12px;letter-spacing:.14em}
@@ -28,7 +28,8 @@ header{position:fixed;top:0;left:0;right:0;height:74px;z-index:50;display:flex;a
 .primary{background:#f5f0fb;color:#09060d;font-weight:800}
 .secondary{border:1px solid #ffffff1d;color:#ddd6e5}
 .blackhole{height:560px;position:relative;display:grid;place-items:center}
-.hole{position:absolute;width:215px;height:215px;border-radius:50%;background:#000;z-index:5;box-shadow:0 0 125px 70px rgba(0,0,0,.30),0 0 165px 40px #8c45ff12;filter:blur(11px)}
+.hole{position:absolute;width:215px;height:215px;border-radius:50%;background:#000;z-index:5;box-shadow:0 0 125px 70px rgba(0,0,0,.30),0 0 165px 40px #8c45ff12;filter:blur(11px);display:grid;place-items:center}
+.hole-logo{width:112px;height:112px;object-fit:contain;filter:none;position:relative;z-index:2}
 .disk{position:absolute;width:570px;height:190px;border-radius:50%;background:conic-gradient(from 15deg,transparent 0 12%,#5620df 25%,#d98cff 39%,#fff1ff 45%,#7d2dff 53%,transparent 68%);filter:blur(11px);transform:rotate(-17deg);animation:rotate 9s linear infinite}
 .disk:after{content:"";position:absolute;inset:36px 18px;border-radius:50%;background:#030206}
 .ring{position:absolute;width:590px;height:270px;border:1px solid #b276ff42;border-radius:50%;transform:rotate(-18deg);animation:float 5s ease-in-out infinite}
@@ -439,7 +440,10 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
   const logoEl = document.getElementById("siteLogo");
   const img = logoEl?.querySelector("img");
   if (!logoEl || !img) return;
-  img.src = "https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=" + Date.now();
+  const logoUrl = "https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=" + Date.now();
+  img.src = logoUrl;
+  const holeLogo = document.querySelector(".hole-logo");
+  if (holeLogo) holeLogo.src = logoUrl;
 })();
 </script>
 
@@ -462,7 +466,7 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
     <div class="ring"></div>
     <div class="ring ring2"></div>
     <div class="disk"></div>
-    <div class="hole"></div>
+    <div class="hole"><img class="hole-logo" src="https://qtceqmnbeobsndpwnisf.supabase.co/storage/v1/object/public/works/site/logo?v=initial" alt="" aria-hidden="true" onerror="this.style.display='none'"></div>
     <div class="label"><b>TON618</b></div>
   </div>
 </section>
