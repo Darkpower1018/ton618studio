@@ -24,6 +24,9 @@ alter table public.orders add column if not exists user_id uuid references auth.
 alter table public.orders add column if not exists original_price numeric(10,2);
 alter table public.orders add column if not exists discount_amount numeric(10,2) not null default 0;
 
+create index if not exists profiles_email_idx on public.profiles(lower(email));
+create index if not exists profiles_display_name_idx on public.profiles(lower(display_name));
+
 alter table public.profiles enable row level security;
 alter table public.discounts enable row level security;
 
@@ -34,9 +37,11 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email)
-  on conflict (id) do update set email = excluded.email;
+  insert into public.profiles (id, email, display_name)
+  values (new.id, new.email, nullif(new.raw_user_meta_data->>'display_name', ''))
+  on conflict (id) do update
+    set email = excluded.email,
+        display_name = coalesce(public.profiles.display_name, excluded.display_name);
   return new;
 end;
 $$;
