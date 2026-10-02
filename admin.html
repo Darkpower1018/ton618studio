@@ -777,7 +777,15 @@
   <h2>會員優惠管理</h2>
   <div class="card">
     <div class="work-upload">
-      <strong>新增 / 修改客戶優惠</strong>
+      <strong>會員帳號搜尋</strong>
+      <small>輸入 Email 或部分 Email，搜尋已註冊帳號；點擊搜尋結果即可帶入下方優惠設定。</small>
+      <div style="display:flex;gap:10px;align-items:stretch;">
+        <input type="text" id="accountSearchInput" placeholder="搜尋帳號 Email" style="margin-top:0;">
+        <button class="primary-btn" type="button" id="accountSearchBtn" style="width:auto;min-width:100px;">搜尋</button>
+      </div>
+      <div id="accountSearchResults"></div>
+
+      <strong style="margin-top:10px;">新增 / 修改客戶優惠</strong>
       <small>輸入已註冊會員的 Email。優惠由後台控制，客戶無法自行修改。</small>
       <input type="email" id="discountEmail" placeholder="客戶 Email">
       <select id="discountType"><option value="percent">百分比折扣</option><option value="fixed">固定金額減免</option></select>
@@ -986,6 +994,89 @@
     const id=btn.dataset.discountId; const active=btn.dataset.active==="true"; btn.disabled=true;
     const {error}=await supabaseClient.from("discounts").update({active:!active}).eq("id",id);
     if(error) alert("更新優惠失敗："+error.message); else await loadDiscounts();
+  });
+
+
+  // =========================
+  // 會員帳號搜尋
+  // =========================
+  const accountSearchInput = document.getElementById("accountSearchInput");
+  const accountSearchBtn = document.getElementById("accountSearchBtn");
+  const accountSearchResults = document.getElementById("accountSearchResults");
+
+  async function searchAccounts() {
+    if (!accountSearchInput || !accountSearchResults) return;
+
+    const keyword = accountSearchInput.value.trim().toLowerCase();
+
+    if (!keyword) {
+      accountSearchResults.innerHTML = "";
+      return;
+    }
+
+    accountSearchBtn.disabled = true;
+    accountSearchBtn.textContent = "搜尋中……";
+    accountSearchResults.innerHTML = '<div class="status">搜尋帳號中……</div>';
+
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id,email,display_name,created_at")
+      .ilike("email", "%" + keyword + "%")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    accountSearchBtn.disabled = false;
+    accountSearchBtn.textContent = "搜尋";
+
+    if (error) {
+      console.error(error);
+      accountSearchResults.innerHTML =
+        '<div class="status">搜尋失敗：' + escapeHtml(error.message) + '</div>';
+      return;
+    }
+
+    if (!data?.length) {
+      accountSearchResults.innerHTML =
+        '<div class="empty" style="padding:20px 10px;">找不到符合的帳號。</div>';
+      return;
+    }
+
+    accountSearchResults.innerHTML = data.map(profile => {
+      const email = profile.email || profile.id;
+      const name = profile.display_name ? "｜" + profile.display_name : "";
+      return '<button type="button" class="account-search-result" data-email="' +
+        escapeAttribute(email) +
+        '" style="display:block;width:100%;text-align:left;margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.04);color:#f4f1fa;cursor:pointer;">' +
+        '<strong>' + escapeHtml(email) + '</strong>' +
+        '<span style="display:block;margin-top:4px;color:#8e8998;font-size:12px;">' +
+        escapeHtml(name ? name.slice(1) : "帳號") +
+        '</span></button>';
+    }).join("");
+  }
+
+  accountSearchBtn?.addEventListener("click", searchAccounts);
+
+  accountSearchInput?.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchAccounts();
+    }
+  });
+
+  document.addEventListener("click", event => {
+    const result = event.target.closest(".account-search-result");
+    if (!result) return;
+
+    const emailInput = document.getElementById("discountEmail");
+    if (emailInput) {
+      emailInput.value = result.dataset.email || "";
+      emailInput.focus();
+    }
+
+    if (accountSearchResults) {
+      accountSearchResults.innerHTML =
+        '<div class="status">✓ 已選擇帳號：' + escapeHtml(result.dataset.email || "") + '</div>';
+    }
   });
 
 
