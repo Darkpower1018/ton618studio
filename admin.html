@@ -696,11 +696,11 @@
   <section class="dashboard" id="dashboard">
 
     <nav class="admin-nav" aria-label="後台快速導覽">
-      <a href="#ordersSection">📦 訂單</a>
-      <a href="#servicesSection">🛠 服務</a>
-      <a href="#discountSection">🎟 優惠</a>
-      <a href="#worksSection">🎬 作品</a>
-      <a href="#siteSettingsSection">⚙️ 網站設定</a>
+      <a href="orders.html">📦 訂單</a>
+      <a href="services.html">🛠 服務</a>
+      <a href="discounts.html">🎟 優惠</a>
+      <a href="works.html">🎬 作品</a>
+      <a href="settings.html">⚙️ 網站設定</a>
     </nav>
 
     <div class="top-row">
@@ -2364,6 +2364,44 @@ document.addEventListener("click", async (event) => {
 // =========================
 
 // =========================
+// 後台獨立頁面模式
+// =========================
+const adminPage = new URLSearchParams(window.location.search).get("page");
+
+function applyAdminPageMode() {
+  if (!adminPage) return;
+
+  const sections = {
+    orders: document.getElementById("ordersSection"),
+    services: document.getElementById("servicesSection"),
+    discounts: document.getElementById("discountSection"),
+    works: document.getElementById("worksSection"),
+    settings: document.getElementById("siteSettingsSection")
+  };
+
+  Object.entries(sections).forEach(([key, section]) => {
+    if (section) section.style.display = key === adminPage ? "" : "none";
+  });
+
+  const titles = {
+    orders: ["委託訂單", "能量工作室｜訂單管理"],
+    services: ["服務與分類管理", "能量工作室｜服務管理"],
+    discounts: ["會員優惠管理", "能量工作室｜優惠管理"],
+    works: ["作品管理", "能量工作室｜作品管理"],
+    settings: ["網站內容與設定", "能量工作室｜網站設定"]
+  };
+
+  const title = titles[adminPage];
+  if (title) {
+    const heading = document.querySelector(".top-row h1");
+    const subtitle = document.querySelector(".top-row .subtitle");
+    if (heading) heading.textContent = title[0];
+    if (subtitle) subtitle.textContent = title[1];
+  }
+}
+
+applyAdminPageMode();
+
 // 檢查目前登入狀態
 // =========================
 
