@@ -316,6 +316,79 @@
       gap: 12px;
     }
 
+    .service-category-editor {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      margin-top: 4px;
+      border: 1px solid rgba(164,103,255,0.18);
+      background: rgba(164,103,255,0.045);
+      border-radius: 15px;
+    }
+
+    .service-category-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .service-category-title strong {
+      color: #f4f1fa;
+      font-size: 17px;
+    }
+
+    .service-category-title span {
+      color: #9b96a8;
+      font-size: 12px;
+    }
+
+    .category-name-input,
+    .category-description-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.28);
+      color: #f4f1fa;
+      padding: 12px 14px;
+      border-radius: 10px;
+      outline: none;
+      font: inherit;
+    }
+
+    .category-description-input {
+      resize: vertical;
+      min-height: 76px;
+      line-height: 1.6;
+    }
+
+    .category-name-input:focus,
+    .category-description-input:focus {
+      border-color: rgba(164,103,255,0.6);
+      background: rgba(255,255,255,0.045);
+    }
+
+    .category-name-input::placeholder,
+    .category-description-input::placeholder {
+      color: #777080;
+    }
+
+    .save-category-btn {
+      width: fit-content;
+      border: 1px solid rgba(164,103,255,0.35);
+      background: rgba(164,103,255,0.08);
+      color: #d9ccff;
+      padding: 9px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .save-category-btn:hover {
+      background: rgba(164,103,255,0.14);
+      border-color: rgba(164,103,255,0.55);
+    }
+
     .service-item {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -1031,57 +1104,92 @@ orderStatusFilter.addEventListener(
       return;
     }
 
-    serviceList.innerHTML = data
-      .map(service => `
-        <div class="service-item">
-          <div>
-            <strong>${escapeHtml(service.service)}</strong>
-            <span>${escapeHtml(service.package)}</span>
+    serviceList.innerHTML = categories.map(category => {
+      const items = data.filter(item => item.service === category);
+      const first = items[0] || {};
 
-            <textarea
-              class="service-description-input"
-              data-service-id="${escapeAttribute(service.id)}"
-              rows="2"
-              placeholder="服務描述"
-            >${escapeHtml(service.description || "")}</textarea>
+      return `
+        <div class="service-category-editor">
+          <div class="service-category-title">
+            <strong>${escapeHtml(category)}</strong>
+            <span>分類設定</span>
           </div>
 
-          <div class="service-price-edit">
-            <span>HKD $</span>
-            <input
-              type="number"
-              class="service-price-input"
-              data-service-id="${escapeAttribute(service.id)}"
-              value="${escapeAttribute(String(service.price))}"
-              min="0"
-              step="1"
-            >
-          </div>
+          <input
+            type="text"
+            class="category-name-input"
+            data-category="${escapeAttribute(category)}"
+            value="${escapeAttribute(category)}"
+            placeholder="分類名稱"
+          >
+
+          <textarea
+            class="category-description-input"
+            data-category="${escapeAttribute(category)}"
+            rows="3"
+            placeholder="這個分類在網站上顯示的簡介……"
+          >${escapeHtml(first.category_description || "")}</textarea>
 
           <button
-            class="save-price-btn"
-            data-service-id="${escapeAttribute(service.id)}"
+            type="button"
+            class="save-category-btn"
+            data-category="${escapeAttribute(category)}"
           >
-            儲存
-          </button>
-
-          <button
-            class="toggle-service-btn"
-            data-service-id="${escapeAttribute(service.id)}"
-            data-active="${service.active}"
-          >
-            ${service.active ? "停用" : "啟用"}
-          </button>
-
-          <button
-            class="delete-service-btn"
-            data-service-id="${escapeAttribute(service.id)}"
-          >
-            刪除
+            儲存分類名稱與簡介
           </button>
         </div>
-      `)
-      .join("");
+
+        ${items.map(service => `
+          <div class="service-item">
+            <div>
+              <strong>${escapeHtml(service.service)}</strong>
+              <span>${escapeHtml(service.package)}</span>
+
+              <textarea
+                class="service-description-input"
+                data-service-id="${escapeAttribute(service.id)}"
+                rows="2"
+                placeholder="服務描述"
+              >${escapeHtml(service.description || "")}</textarea>
+            </div>
+
+            <div class="service-price-edit">
+              <span>HKD $</span>
+              <input
+                type="number"
+                class="service-price-input"
+                data-service-id="${escapeAttribute(service.id)}"
+                value="${escapeAttribute(String(service.price))}"
+                min="0"
+                step="1"
+              >
+            </div>
+
+            <button
+              class="save-price-btn"
+              data-service-id="${escapeAttribute(service.id)}"
+            >
+              儲存
+            </button>
+
+            <button
+              class="toggle-service-btn"
+              data-service-id="${escapeAttribute(service.id)}"
+              data-active="${service.active}"
+            >
+              ${service.active ? "停用" : "啟用"}
+            </button>
+
+            <button
+              class="delete-service-btn"
+              data-service-id="${escapeAttribute(service.id)}"
+            >
+              刪除
+            </button>
+          </div>
+        `).join("")}
+      `;
+    }).join("");
   }
 
 
@@ -1904,6 +2012,78 @@ document.addEventListener("change", async (event) => {
 
   document.addEventListener("click", async (event) => {
 
+  const categoryButton = event.target.closest(".save-category-btn");
+
+  if (categoryButton) {
+    const oldCategory = categoryButton.dataset.category;
+    const nameInput = document.querySelector(
+      `.category-name-input[data-category="${CSS.escape(oldCategory)}"]`
+    );
+    const descriptionInput = document.querySelector(
+      `.category-description-input[data-category="${CSS.escape(oldCategory)}"]`
+    );
+
+    if (!oldCategory || !nameInput || !descriptionInput) return;
+
+    const newCategory = nameInput.value.trim();
+    const description = descriptionInput.value.trim();
+
+    if (!newCategory) {
+      alert("請輸入分類名稱。");
+      return;
+    }
+
+    const isRenaming = newCategory !== oldCategory;
+
+    if (isRenaming) {
+      const { data: existingRows, error: checkError } = await supabaseClient
+        .from("services")
+        .select("id")
+        .eq("service", newCategory)
+        .limit(1);
+
+      if (checkError) {
+        console.error(checkError);
+        alert("檢查分類名稱失敗：" + checkError.message);
+        return;
+      }
+
+      if ((existingRows || []).length > 0) {
+        alert("這個分類名稱已經存在，請使用其他名稱。");
+        return;
+      }
+    }
+
+    categoryButton.disabled = true;
+    categoryButton.textContent = "儲存中……";
+
+    const { error } = await supabaseClient
+      .from("services")
+      .update({
+        service: newCategory,
+        category_description: description
+      })
+      .eq("service", oldCategory);
+
+    if (error) {
+      console.error(error);
+      alert("分類更新失敗：" + error.message);
+      categoryButton.disabled = false;
+      categoryButton.textContent = "儲存分類名稱與簡介";
+      return;
+    }
+
+    categoryButton.textContent = "✓ 已儲存";
+    await loadServices();
+
+    setTimeout(() => {
+      categoryButton.disabled = false;
+      categoryButton.textContent = "儲存分類名稱與簡介";
+    }, 1500);
+
+    return;
+  }
+
   if (!event.target.classList.contains("toggle-service-btn")) {
     return;
   }
@@ -1998,137 +2178,3 @@ document.addEventListener("click", async (event) => {
 
   if (!input) {
     return;
-  }
-
-  const newPrice = Number(input.value);
-
-  if (!Number.isFinite(newPrice) || newPrice < 0) {
-    alert("請輸入有效的價格。");
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = "儲存中……";
-
-  const { error } = await supabaseClient
-    .from("services")
-    .update({
-     price: newPrice,
-    description: descriptionInput
-  ? descriptionInput.value.trim()
-  : ""
-    })
-    .eq("id", serviceId);
-
-  if (error) {
-
-    console.error(error);
-
-    alert("價格更新失敗：" + error.message);
-
-    button.disabled = false;
-    button.textContent = "儲存";
-
-    return;
-  }
-
-  button.textContent = "✓ 已儲存";
-
-  setTimeout(() => {
-    button.disabled = false;
-    button.textContent = "儲存";
-  }, 1500);
-
-});
-
-// =========================
-// 檢查目前登入狀態
-// =========================
-
-// =========================
-// 檢查目前登入狀態
-// =========================
-
-async function checkSession() {
-
-    const {
-      data
-    } = await supabaseClient.auth.getSession();
-
-
-    if (data.session) {
-
-      showDashboard();
-
-    }
-
-  }
-
-
-  // =========================
-  // HTML 安全處理
-  // =========================
-
-  function escapeHtml(value) {
-
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-
-  }
-
-
-  function escapeAttribute(value) {
-
-    return escapeHtml(value);
-
-  }
-
-
-document.addEventListener("click", async event => {
-
-  const button = event.target.closest(".material-btn");
-
-  if (!button) return;
-
-  const path = button.dataset.materialPath;
-
-  if (!path) return;
-
-  button.disabled = true;
-  button.textContent = "建立素材連結……";
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .storage
-    .from("materials")
-    .createSignedUrl(path, 3600);
-
-  if (error) {
-    console.error(error);
-    alert("無法開啟素材：" + error.message);
-    button.disabled = false;
-    button.textContent = "↗ 開啟已上傳素材";
-    return;
-  }
-
-  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-
-  button.disabled = false;
-  button.textContent = "↗ 開啟已上傳素材";
-
-});
-
-  checkSession();
-  loadServices();
-  loadWorks();
-
-</script>
-
-</body>
-</html>
