@@ -5,6 +5,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   display_name text,
+  role text not null default 'customer' check (role in ('customer','admin')),
   created_at timestamptz not null default now()
 );
 
@@ -51,6 +52,12 @@ on public.profiles for select
 to authenticated
 using (auth.uid() = id);
 
+drop policy if exists "admins can read all profiles" on public.profiles;
+create policy "admins can read all profiles"
+on public.profiles for select
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
 drop policy if exists "users can update own profile" on public.profiles;
 create policy "users can update own profile"
 on public.profiles for update
@@ -66,3 +73,14 @@ using (auth.uid() = user_id);
 
 -- 客戶可以建立自己的訂單；原有匿名查詢/下單流程如需保留，可按現有 policies 調整。
 -- 優惠的真正價格計算會在 Vercel API + service role 端完成，前端不能自行改價。
+
+
+drop policy if exists "admins can manage discounts" on public.discounts;
+create policy "admins can manage discounts"
+on public.discounts for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+-- 執行完成後，把你自己的管理員帳號升級（把 Email 換成你的 Admin Email）：
+-- update public.profiles set role = 'admin' where email = 'YOUR_ADMIN_EMAIL';
