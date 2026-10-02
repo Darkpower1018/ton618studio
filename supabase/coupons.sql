@@ -30,6 +30,8 @@ where user_id is not null;
 create index if not exists coupons_code_idx on public.coupons(lower(code));
 create index if not exists coupon_redemptions_coupon_idx on public.coupon_redemptions(coupon_id);
 
+alter table public.orders add column if not exists coupon_code text;
+
 alter table public.coupons enable row level security;
 alter table public.coupon_redemptions enable row level security;
 
