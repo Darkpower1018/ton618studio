@@ -25,6 +25,9 @@ export default async function handler(req, res) {
     const details = String(body.details || "").trim();
     const materials = String(body.materials || "").trim();
     const materialPath = String(body.materialPath || "").trim();
+    const authHeader = req.headers.authorization || "";
+    let userId = null;
+    let discountAmount = 0;
 
     if (!name || !contactType || !contact || !service || !details) {
       return json(res, 400, { error: "請完整填寫委託資料。" });
@@ -55,6 +58,38 @@ export default async function handler(req, res) {
       return json(res, 400, { error: "服務套餐無效或已停用。" });
     }
 
+    // 若客戶已登入，驗證 access token 並從資料庫取得真正可用的優惠。
+    if (authHeader.startsWith("Bearer ")) {
+      const userResponse = await fetch(
+        `${SUPABASE_URL}/auth/v1/user`,
+        { headers: { "apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": authHeader } }
+      );
+      if (userResponse.ok) {
+        const user = await userResponse.json();
+        userId = user?.id || null;
+      }
+    }
+
+    let finalPrice = Number(selected.price);
+    if (userId) {
+      const discountResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/discounts?user_id=eq.${userId}&active=eq.true&select=id,type,value,expires_at&order=created_at.desc&limit=1`,
+        { headers }
+      );
+      if (discountResponse.ok) {
+        const discounts = await discountResponse.json();
+        const discount = discounts?.[0];
+        if (discount && (!discount.expires_at || new Date(discount.expires_at) > new Date())) {
+          const value = Math.max(0, Number(discount.value || 0));
+          discountAmount = discount.type === "percent"
+            ? Math.min(finalPrice, finalPrice * Math.min(value, 100) / 100)
+            : Math.min(finalPrice, value);
+          discountAmount = Math.round(discountAmount * 100) / 100;
+          finalPrice = Math.max(0, Math.round((finalPrice - discountAmount) * 100) / 100);
+        }
+      }
+    }
+
     const insertResponse = await fetch(
       `${SUPABASE_URL}/rest/v1/orders`,
       {
@@ -66,7 +101,10 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           service,
           package: selected.package,
-          price: selected.price,
+          price: finalPrice,
+          original_price: selected.price,
+          discount_amount: discountAmount,
+          user_id: userId,
           customer_name: name,
           contact_type: contactType,
           contact,
@@ -120,7 +158,9 @@ export default async function handler(req, res) {
     return json(res, 200, {
       ok: true,
       order_number: order.order_number,
-      price: order.price
+      price: order.price,
+      original_price: selected.price,
+      discount_amount: discountAmount
     });
   } catch (error) {
     console.error(error);
