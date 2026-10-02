@@ -873,10 +873,14 @@
 
     event.preventDefault();
 
+    if (!window.supabase || !supabaseClient) {
+      loginStatus.textContent =
+        "✕ Supabase 載入失敗，請重新整理頁面後再試。";
+      return;
+    }
+
     loginBtn.disabled = true;
-
     loginStatus.textContent = "登入中……";
-
 
     const email =
       document.getElementById("email").value.trim();
@@ -884,32 +888,32 @@
     const password =
       document.getElementById("password").value;
 
+    try {
+      const {
+        data,
+        error
+      } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    const {
-      data,
-      error
-    } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+      if (error) {
+        console.error(error);
+        loginStatus.textContent =
+          "✕ 登入失敗：" + error.message;
+        loginBtn.disabled = false;
+        return;
+      }
 
+      loginStatus.textContent = "";
+      await showDashboard();
 
-    if (error) {
-
+    } catch (error) {
       console.error(error);
-
       loginStatus.textContent =
-        "✕ 登入失敗：" + error.message;
-
+        "✕ 登入時發生錯誤：" + (error?.message || error);
       loginBtn.disabled = false;
-
-      return;
     }
-
-
-    loginStatus.textContent = "";
-
-    showDashboard();
 
   });
 
