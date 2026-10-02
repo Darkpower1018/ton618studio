@@ -196,6 +196,69 @@
       margin-bottom: 25px;
     }
 
+    .admin-nav {
+      position: sticky;
+      top: 89px;
+      z-index: 9;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 24px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: rgba(7,7,11,0.88);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+    }
+
+    .admin-nav a {
+      flex: 1 1 auto;
+      text-align: center;
+      text-decoration: none;
+      color: #d9d4e1;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.045);
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 13px;
+      transition: 0.15s ease;
+    }
+
+    .admin-nav a:hover {
+      color: white;
+      background: rgba(164,103,255,0.12);
+      border-color: rgba(164,103,255,0.35);
+    }
+
+    .admin-section {
+      scroll-margin-top: 145px;
+      margin-top: 30px;
+    }
+
+    .site-settings-grid {
+      display: grid;
+      gap: 28px;
+    }
+
+    @media (max-width: 650px) {
+      .admin-nav {
+        top: 77px;
+        margin-left: -4px;
+        margin-right: -4px;
+      }
+
+      .admin-nav a {
+        flex: 1 1 calc(33.333% - 8px);
+        padding: 8px 7px;
+        font-size: 12px;
+      }
+
+      .admin-section {
+        scroll-margin-top: 125px;
+      }
+    }
+
     .refresh-btn {
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.05);
@@ -632,6 +695,14 @@
   <!-- 後台 -->
   <section class="dashboard" id="dashboard">
 
+    <nav class="admin-nav" aria-label="後台快速導覽">
+      <a href="#ordersSection">📦 訂單</a>
+      <a href="#servicesSection">🛠 服務</a>
+      <a href="#discountSection">🎟 優惠</a>
+      <a href="#worksSection">🎬 作品</a>
+      <a href="#siteSettingsSection">⚙️ 網站設定</a>
+    </nav>
+
     <div class="top-row">
 
       <div>
@@ -651,7 +722,7 @@
 
     </div>
 
-        <section class="service-manager">
+        <section class="service-manager admin-section" id="servicesSection">
 
       <h2>服務與分類管理</h2>
 
@@ -702,7 +773,7 @@
     </section>
     
 
-<section class="discount-manager">
+<section class="discount-manager admin-section" id="discountSection">
   <h2>會員優惠管理</h2>
   <div class="card">
     <div class="work-upload">
@@ -719,7 +790,10 @@
     <div id="discountList"><div class="empty">載入會員優惠中……</div></div>
   </div>
 </section>
-<section class="logo-manager">
+<section class="admin-section" id="siteSettingsSection">
+  <h2>網站內容與設定</h2>
+  <div class="site-settings-grid">
+  <section class="logo-manager">
   <h2>網站 Logo</h2>
   <div class="card">
     <div class="work-upload">
@@ -760,8 +834,10 @@
     <div id="gunsyncVideoPreview"><div class="empty">載入 GUNSYNC 影片中……</div></div>
   </div>
 </section>
+  </div>
+</section>
 
-<section class="works-manager">
+<section class="works-manager admin-section" id="worksSection">
   <h2>作品管理</h2>
   <div class="card">
     <div class="work-upload">
@@ -781,6 +857,7 @@
   </div>
 </section>
 
+<div class="admin-section" id="ordersSection">
 <div class="order-tools">
 
   <input
