@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     const couponCode = String(body.couponCode || "").trim().toUpperCase();
     const authHeader = req.headers.authorization || "";
     let userId = null;
+    let accountProfile = null;
     let discountAmount = 0;
     let appliedCoupon = null;
 
@@ -71,6 +72,13 @@ export default async function handler(req, res) {
         userId = user?.id || null;
       }
     }
+
+    if (userId) {
+      const profileResponse = await fetch(SUPABASE_URL + "/rest/v1/profiles?id=eq." + userId + "&select=id,email,display_name&limit=1", { headers });
+      if (profileResponse.ok) accountProfile = (await profileResponse.json())?.[0] || null;
+    }
+    const customerName = userId ? String(accountProfile?.display_name || "").trim() : name;
+    if (userId && !customerName) return json(res, 400, { error: "你的帳號尚未設定暱稱，請先完成帳號暱稱設定。" });
 
     const originalPrice = Number(selected.price);
     let finalPrice = originalPrice;
@@ -152,7 +160,7 @@ export default async function handler(req, res) {
           original_price: selected.price,
           discount_amount: discountAmount,
           user_id: userId,
-          customer_name: name,
+          customer_name: customerName,
           contact_type: contactType,
           contact,
           details,
@@ -207,7 +215,8 @@ export default async function handler(req, res) {
             { name: "訂單編號", value: order.order_number || "未設定", inline: true },
             { name: "服務", value: service, inline: true },
             { name: "價格", value: `HKD ${finalPrice}` + (discountAmount > 0 ? `（原價 ${selected.price}，優惠 -${discountAmount}${appliedCoupon ? "｜" + appliedCoupon.code : ""}）` : ""), inline: true },
-            { name: "客戶", value: name, inline: true },
+            { name: "客戶", value: customerName, inline: true },
+            { name: "Email", value: accountProfile?.email || "—", inline: true },
             { name: "聯絡方式", value: `${contactType} / ${contact}`, inline: true },
             { name: "付款", value: "尚未付款", inline: true },
             { name: "需求", value: details.slice(0, 1000) }
