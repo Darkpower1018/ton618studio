@@ -1264,13 +1264,8 @@
     accountSearchBtn.textContent = "搜尋中……";
     accountSearchResults.innerHTML = '<div class="status">搜尋帳號中……</div>';
 
-    // Email 與暱稱分開查詢，再合併結果，避免 .or() 在特殊字元下解析失敗。
-    const safeKeyword = keyword.replace(/[\\%_]/g, "\\\\    const { data: profiles, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("id,email,display_name,created_at")
-      .or("email.ilike.%" + keyword.replace(/,/g,"") + "%,display_name.ilike.%" + keyword.replace(/,/g,"") + "%")
-      .order("created_at", { ascending: false })
-      .limit(20);");
+    // Email 與暱稱分開查詢，再合併結果，避免特殊字元解析問題。
+    const safeKeyword = keyword.replaceAll("%", "").replaceAll("_", "");
 
     const [
       { data: emailProfiles, error: emailError },
