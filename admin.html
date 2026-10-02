@@ -701,6 +701,24 @@
 
     </section>
     
+
+<section class="discount-manager">
+  <h2>會員優惠管理</h2>
+  <div class="card">
+    <div class="work-upload">
+      <strong>新增 / 修改客戶優惠</strong>
+      <small>輸入已註冊會員的 Email。優惠由後台控制，客戶無法自行修改。</small>
+      <input type="email" id="discountEmail" placeholder="客戶 Email">
+      <select id="discountType"><option value="percent">百分比折扣</option><option value="fixed">固定金額減免</option></select>
+      <input type="number" id="discountValue" min="0" step="0.01" placeholder="例如 10 = 10% 或 HKD $10">
+      <input type="datetime-local" id="discountExpires">
+      <input type="text" id="discountNote" placeholder="備註（可選）">
+      <button class="primary-btn" type="button" id="saveDiscountBtn">＋ 套用優惠</button>
+      <div class="status" id="discountStatus"></div>
+    </div>
+    <div id="discountList"><div class="empty">載入會員優惠中……</div></div>
+  </div>
+</section>
 <section class="logo-manager">
   <h2>網站 Logo</h2>
   <div class="card">
@@ -842,6 +860,58 @@
   document.getElementById("serviceList");
 
   // =========================
+  // 會員優惠管理
+  // =========================
+  const discountList = document.getElementById("discountList");
+  const discountStatus = document.getElementById("discountStatus");
+  const saveDiscountBtn = document.getElementById("saveDiscountBtn");
+
+  async function loadDiscounts() {
+    if (!discountList) return;
+    const { data, error } = await supabaseClient
+      .from("discounts")
+      .select("id,user_id,type,value,active,expires_at,note,created_at")
+      .order("created_at", { ascending:false });
+    if (error) {
+      discountList.innerHTML = '<div class="empty">無法載入會員優惠。<br><br>' + escapeHtml(error.message) + '<br><br>請確認已執行 supabase/customer_accounts_discounts.sql，且目前登入帳號 role 為 admin。</div>';
+      return;
+    }
+    const ids=[...new Set((data||[]).map(x=>x.user_id).filter(Boolean))];
+    let profiles=[];
+    if(ids.length){ const p=await supabaseClient.from("profiles").select("id,email").in("id",ids); profiles=p.data||[]; }
+    const emailMap=Object.fromEntries(profiles.map(p=>[p.id,p.email||p.id]));
+    if(!data?.length){discountList.innerHTML='<div class="empty">目前沒有會員優惠。</div>';return;}
+    discountList.innerHTML=data.map(d=>{
+      const value=d.type==="percent"?Number(d.value)+"% OFF":"HKD -$"+Number(d.value).toFixed(2);
+      const exp=d.expires_at?new Date(d.expires_at).toLocaleString("zh-HK"):"永久";
+      return '<div class="card" style="margin-top:12px;padding:18px;"><strong>'+escapeHtml(emailMap[d.user_id]||d.user_id)+'</strong><div class="muted" style="margin-top:7px;">'+escapeHtml(value)+'｜'+escapeHtml(d.active?"啟用":"停用")+'｜到期：'+escapeHtml(exp)+(d.note?"<br>備註："+escapeHtml(d.note):"")+'</div><button type="button" class="toggle-discount-btn" data-discount-id="'+escapeAttribute(d.id)+'" data-active="'+escapeAttribute(d.active)+'" style="margin-top:12px;">'+(d.active?"停用優惠":"啟用優惠")+'</button></div>';
+    }).join("");
+  }
+
+  saveDiscountBtn?.addEventListener("click", async()=>{
+    const email=document.getElementById("discountEmail").value.trim().toLowerCase();
+    const type=document.getElementById("discountType").value;
+    const value=Number(document.getElementById("discountValue").value);
+    const expiresRaw=document.getElementById("discountExpires").value;
+    const note=document.getElementById("discountNote").value.trim();
+    if(!email || !Number.isFinite(value) || value<=0 || (type==="percent" && value>100)){discountStatus.textContent="請輸入有效的 Email、優惠數值（百分比不可超過 100）。";return;}
+    discountStatus.textContent="尋找會員中……"; saveDiscountBtn.disabled=true;
+    const {data:profiles,error:pError}=await supabaseClient.from("profiles").select("id,email").ilike("email",email).limit(1);
+    if(pError || !profiles?.[0]){discountStatus.textContent="找不到這個會員。請確認他已經註冊帳號。";saveDiscountBtn.disabled=false;return;}
+    const {error}=await supabaseClient.from("discounts").insert({user_id:profiles[0].id,type,value,active:true,expires_at:expiresRaw?new Date(expiresRaw).toISOString():null,note:note||null});
+    if(error){discountStatus.textContent="套用優惠失敗："+error.message;saveDiscountBtn.disabled=false;return;}
+    discountStatus.textContent="✓ 優惠已套用。";document.getElementById("discountValue").value="";document.getElementById("discountExpires").value="";document.getElementById("discountNote").value="";saveDiscountBtn.disabled=false;await loadDiscounts();
+  });
+
+  document.addEventListener("click",async event=>{
+    const btn=event.target.closest(".toggle-discount-btn"); if(!btn)return;
+    const id=btn.dataset.discountId; const active=btn.dataset.active==="true"; btn.disabled=true;
+    const {error}=await supabaseClient.from("discounts").update({active:!active}).eq("id",id);
+    if(error) alert("更新優惠失敗："+error.message); else await loadDiscounts();
+  });
+
+
+  // =========================
   // 登入
   // =========================
 
@@ -908,6 +978,7 @@
     await loadGunsyncVideo();
     await loadSiteLogo();
     await loadSiteOg();
+    await loadDiscounts();
 
   }
 
@@ -1927,6 +1998,7 @@ function createOrderHTML(order) {
   loadGunsyncVideo();
   loadSiteLogo();
   loadSiteOg();
+  loadDiscounts();
 
 });
 
