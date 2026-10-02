@@ -457,8 +457,8 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 </header>
 
 <div class="account-panel" id="accountPanel">
-  <h3 id="accountTitle">會員登入</h3>
-  <p id="accountIntro">登入後可以查看你的專屬優惠，並在下單時自動套用。</p>
+  <h3 id="accountTitle">登入帳號</h3>
+  <p id="accountIntro">登入後即可正常下單；如有專屬優惠，系統會自動套用。</p>
   <form id="accountForm">
     <label>Email<input type="email" id="accountEmail" required autocomplete="email"></label>
     <label>密碼<input type="password" id="accountPassword" required autocomplete="current-password" minlength="6"></label>
@@ -709,8 +709,8 @@ function formatDiscount(discount, originalPrice) {
 
 function updateAccountUI() {
   if (currentUser) {
-    accountBtn.textContent = currentUser.email ? "會員｜" + currentUser.email.split("@")[0] : "會員中心";
-    accountTitle.textContent = "會員中心";
+    accountBtn.textContent = currentUser.email ? "帳號｜" + currentUser.email.split("@")[0] : "帳號";
+    accountTitle.textContent = "帳號資訊";
     accountIntro.textContent = "已登入：" + currentUser.email;
     accountForm.style.display = "none";
     accountMode.style.display = "none";
@@ -722,7 +722,7 @@ function updateAccountUI() {
     } else discountBox.innerHTML = '<div class="discount-box">目前沒有可用的專屬優惠。</div>';
   } else {
     accountBtn.textContent = "登入 / 註冊";
-    accountTitle.textContent = accountSignupMode ? "建立會員帳號" : "會員登入";
+    accountTitle.textContent = accountSignupMode ? "建立帳號" : "登入帳號";
     accountIntro.textContent = "登入後可以查看你的專屬優惠，並在下單時自動套用。";
     accountForm.style.display = "block";
     accountMode.style.display = "block";
