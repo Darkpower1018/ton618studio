@@ -704,6 +704,11 @@
       <a href="settings.html">⚙️ 網站設定</a>
     </nav>
 
+    <div id="adminHomePanel" class="card" style="margin-top:30px;">
+      <h2>管理後台</h2>
+      <div class="description" style="margin-bottom:0;">選擇上方功能進入管理頁面。</div>
+    </div>
+
     <div class="top-row">
 
       <div>
@@ -2493,7 +2498,21 @@ document.addEventListener("click", async (event) => {
 const adminPage = new URLSearchParams(window.location.search).get("page");
 
 function applyAdminPageMode() {
-  if (!adminPage) return;
+  const homePanel = document.getElementById("adminHomePanel");
+  if (!adminPage) {
+    if (homePanel) homePanel.style.display = "";
+    const sections = ["ordersSection", "servicesSection", "discountSection", "worksSection", "siteSettingsSection"];
+    sections.forEach((id) => {
+      const section = document.getElementById(id);
+      if (section) section.style.display = "none";
+    });
+    const topRow = document.querySelector(".top-row");
+    if (topRow) topRow.style.display = "none";
+    return;
+  }
+  if (homePanel) homePanel.style.display = "none";
+  const topRow = document.querySelector(".top-row");
+  if (topRow) topRow.style.display = "";
 
   const sections = {
     orders: document.getElementById("ordersSection"),
