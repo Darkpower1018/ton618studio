@@ -166,7 +166,11 @@
       opacity: 0.9;
     }
 
-    .gunsync-video-manager{margin-top:28px}
+    .logo-manager{margin-top:28px}
+.logo-manager .card{display:grid;gap:18px}
+.site-logo-preview{display:flex;align-items:center;justify-content:flex-start;min-height:100px;padding:24px;border:1px solid #ffffff12;background:#050407;border-radius:10px}
+.site-logo-preview img{display:block;max-width:260px;max-height:100px;object-fit:contain}
+.gunsync-video-manager{margin-top:28px}
     .gunsync-video-manager .card{display:grid;gap:18px}
     .gunsync-video-preview{border:1px solid #ffffff12;background:#050407;border-radius:10px;overflow:hidden}
     .gunsync-video-preview video{display:block;width:100%;max-height:420px;background:#000}
@@ -697,6 +701,20 @@
 
     </section>
     
+<section class="logo-manager">
+  <h2>網站 Logo</h2>
+  <div class="card">
+    <div class="work-upload">
+      <strong>左上角 Logo</strong>
+      <small>上傳透明背景的 PNG、WebP 或 SVG。新的 Logo 會直接取代目前網站左上角的 Logo。</small>
+      <input type="file" id="siteLogoFile" accept="image/png,image/webp,image/svg+xml">
+      <button class="primary-btn" type="button" id="uploadSiteLogoBtn">＋ 上傳 Logo</button>
+      <div class="status" id="siteLogoStatus"></div>
+    </div>
+    <div id="siteLogoPreview"><div class="empty">載入目前 Logo 中……</div></div>
+  </div>
+</section>
+
 <section class="gunsync-video-manager">
   <h2>GUNSYNC 展示影片</h2>
   <div class="card">
@@ -874,6 +892,7 @@
     await loadServices();
     await loadWorks();
     await loadGunsyncVideo();
+    await loadSiteLogo();
 
   }
 
@@ -1072,6 +1091,67 @@ orderStatusFilter.addEventListener(
       `;
     }).join("");
   }
+
+
+  // =========================
+  // 網站 Logo
+  // =========================
+
+  const siteLogoFile = document.getElementById("siteLogoFile");
+  const uploadSiteLogoBtn = document.getElementById("uploadSiteLogoBtn");
+  const siteLogoStatus = document.getElementById("siteLogoStatus");
+  const siteLogoPreview = document.getElementById("siteLogoPreview");
+  const SITE_LOGO_PATH = "site/logo";
+
+  async function loadSiteLogo() {
+    if (!siteLogoPreview) return;
+    const { data } = supabaseClient.storage.from("works").getPublicUrl(SITE_LOGO_PATH);
+    const url = data?.publicUrl ? data.publicUrl + "?v=" + Date.now() : "";
+    siteLogoPreview.innerHTML = url
+      ? '<div class="site-logo-preview"><img src="' + escapeAttribute(url) + '" alt="網站 Logo"></div>'
+      : '<div class="empty">目前沒有 Logo。</div>';
+  }
+
+  uploadSiteLogoBtn?.addEventListener("click", async () => {
+    const file = siteLogoFile?.files?.[0];
+    if (!file) {
+      siteLogoStatus.textContent = "請先選擇 PNG、WebP 或 SVG Logo。";
+      return;
+    }
+
+    if (!["image/png","image/webp","image/svg+xml"].includes(file.type)) {
+      siteLogoStatus.textContent = "只接受 PNG、WebP 或 SVG。";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      siteLogoStatus.textContent = "Logo 檔案不能超過 5MB。";
+      return;
+    }
+
+    uploadSiteLogoBtn.disabled = true;
+    siteLogoStatus.textContent = "上傳中……";
+
+    const { error } = await supabaseClient.storage
+      .from("works")
+      .upload(SITE_LOGO_PATH, file, {
+        upsert: true,
+        contentType: file.type,
+        cacheControl: "3600"
+      });
+
+    if (error) {
+      console.error(error);
+      siteLogoStatus.textContent = "✕ 上傳失敗：" + error.message;
+      uploadSiteLogoBtn.disabled = false;
+      return;
+    }
+
+    siteLogoStatus.textContent = "✓ Logo 已更新。";
+    siteLogoFile.value = "";
+    await loadSiteLogo();
+    uploadSiteLogoBtn.disabled = false;
+  });
 
 
   // =========================
@@ -1769,6 +1849,7 @@ function createOrderHTML(order) {
   loadServices();
   loadWorks();
   loadGunsyncVideo();
+  loadSiteLogo();
 
 });
 
