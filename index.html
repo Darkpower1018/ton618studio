@@ -707,7 +707,7 @@ async function loadServices() {
     container.innerHTML = categories.map((category, categoryIndex) => {
       const m = meta[category] || fallbackMeta;
       const items = data.filter(item => item.service === category);
-      const categoryDescription = items[0]?.category_description || m.description;
+      const categoryDescription = items.find(item => item.category_description?.trim())?.category_description?.trim() || m.description;
       const categoryTags = (items[0]?.category_tags || "")
         .split(",")
         .map(tag => tag.trim())
