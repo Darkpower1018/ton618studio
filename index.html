@@ -1179,7 +1179,8 @@ orderForm.addEventListener("submit", async event => {
     const response = await fetch("/api/create-order", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...(currentUser ? { "Authorization": "Bearer " + (await supabaseClient.auth.getSession()).data.session?.access_token } : {})
       },
       body: JSON.stringify({
         name,
@@ -1189,8 +1190,7 @@ orderForm.addEventListener("submit", async event => {
         details,
         materials,
         materialPath
-      }),
-      ...(currentUser ? { headers: { "Authorization": "Bearer " + (await supabaseClient.auth.getSession()).data.session?.access_token } } : {})
+      })
     });
 
     const result = await response.json();
