@@ -134,7 +134,7 @@ export default async function handler(req, res) {
           fields: [
             { name: "訂單編號", value: order.order_number || "未設定", inline: true },
             { name: "服務", value: service, inline: true },
-            { name: "價格", value: `HKD $${selected.price}`, inline: true },
+            { name: "價格", value: `HKD ${finalPrice}` + (discountAmount > 0 ? `（原價 ${selected.price}，優惠 -${discountAmount}）` : ""), inline: true },
             { name: "客戶", value: name, inline: true },
             { name: "聯絡方式", value: `${contactType} / ${contact}`, inline: true },
             { name: "付款", value: "尚未付款", inline: true },
