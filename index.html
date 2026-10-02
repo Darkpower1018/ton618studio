@@ -1324,9 +1324,11 @@ orderForm.addEventListener("submit", async event => {
 
     orderForm.reset();
 
-    window.scrollTo({
-      top: document.getElementById("order").offsetTop - 80,
-      behavior: "smooth"
+    requestAnimationFrame(() => {
+      statusText.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
     });
 
   } catch (error) {
