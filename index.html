@@ -460,6 +460,7 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
   <h3 id="accountTitle">登入帳號</h3>
   <p id="accountIntro">登入後即可正常下單；如有專屬優惠，系統會自動套用。</p>
   <form id="accountForm">
+    <label id="accountNicknameLabel" style="display:none;">暱稱<input type="text" id="accountNickname" autocomplete="nickname" maxlength="40" placeholder="你的暱稱"></label>
     <label>Email<input type="email" id="accountEmail" required autocomplete="email"></label>
     <label>密碼<input type="password" id="accountPassword" required autocomplete="current-password" minlength="6"></label>
     <div class="account-actions"><button type="submit" class="account-btn" id="accountSubmit">登入</button><button type="button" class="account-btn" id="accountMode">建立帳號</button></div>
@@ -560,7 +561,7 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
 
     <form class="form" id="orderForm">
 
-      <label>
+      <label id="orderNicknameLabel">
         暱稱
         <input required name="name" id="name" placeholder="你的稱呼">
       </label>
@@ -653,8 +654,8 @@ footer{padding:35px 5vw;border-top:1px solid #ffffff12;display:flex;justify-cont
       </label>
 
       <label>
-        聯絡帳號
-        <input required id="lookupContact" placeholder="例如 agc_ton618">
+        Email / 暱稱
+        <input required id="lookupContact" placeholder="例如 email@example.com 或你的暱稱">
       </label>
 
       <button type="submit" id="lookupBtn">查詢訂單 ↗</button>
@@ -691,6 +692,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let currentUser = null;
+let currentProfile = null;
 let currentDiscount = null;
 let currentCoupon = null;
 const accountBtn = document.getElementById("accountBtn");
@@ -702,6 +704,9 @@ const accountStatus = document.getElementById("accountStatus");
 const accountTitle = document.getElementById("accountTitle");
 const accountIntro = document.getElementById("accountIntro");
 const accountLogout = document.getElementById("accountLogout");
+const accountNicknameLabel = document.getElementById("accountNicknameLabel");
+const accountNickname = document.getElementById("accountNickname");
+const orderNicknameLabel = document.getElementById("orderNicknameLabel");
 const discountBox = document.getElementById("discountBox");
 const orderPricePreview = document.getElementById("orderPricePreview");
 const orderOriginalPrice = document.getElementById("orderOriginalPrice");
@@ -719,13 +724,21 @@ function formatDiscount(discount, originalPrice) {
 
 function updateAccountUI() {
   if (currentUser) {
-    accountBtn.textContent = currentUser.email ? "帳號｜" + currentUser.email.split("@")[0] : "帳號";
+    const nickname = currentProfile?.display_name || currentUser.email?.split("@")[0] || "帳號";
+    accountBtn.textContent = "帳號｜" + nickname;
     accountTitle.textContent = "帳號資訊";
-    accountIntro.textContent = "已登入：" + currentUser.email;
+    accountIntro.textContent = "已登入：" + nickname + (currentUser.email ? "｜" + currentUser.email : "");
     accountForm.style.display = "none";
     accountMode.style.display = "none";
     accountLogout.style.display = "block";
     accountStatus.textContent = "";
+    if (accountNicknameLabel) accountNicknameLabel.style.display = "none";
+    if (orderNicknameLabel) {
+      const input = orderNicknameLabel.querySelector("input");
+      input.value = currentProfile?.display_name || "";
+      input.readOnly = true;
+      input.placeholder = "帳號暱稱";
+    }
     if (currentDiscount) {
       const exp = currentDiscount.expires_at ? new Date(currentDiscount.expires_at).toLocaleDateString("zh-HK") : "永久";
       discountBox.innerHTML = '<div class="discount-box">🎁 你的專屬優惠：<strong>' + escapeHtml(currentDiscount.type === "percent" ? Number(currentDiscount.value) + "% OFF" : "HKD -$" + Number(currentDiscount.value).toFixed(2)) + '</strong><br>有效期：' + escapeHtml(exp) + '</div>';
@@ -733,14 +746,28 @@ function updateAccountUI() {
   } else {
     accountBtn.textContent = "登入 / 註冊";
     accountTitle.textContent = accountSignupMode ? "建立帳號" : "登入帳號";
-    accountIntro.textContent = "登入後可以查看你的專屬優惠，並在下單時自動套用。";
+    accountIntro.textContent = accountSignupMode ? "建立帳號時先設定暱稱，之後下單會自動使用這個暱稱。" : "登入後可以查看你的專屬優惠，並在下單時自動套用。";
     accountForm.style.display = "block";
     accountMode.style.display = "block";
     accountMode.textContent = accountSignupMode ? "返回登入" : "建立帳號";
     accountSubmit.textContent = accountSignupMode ? "註冊" : "登入";
     accountLogout.style.display = "none";
+    if (accountNicknameLabel) accountNicknameLabel.style.display = accountSignupMode ? "block" : "none";
+    if (orderNicknameLabel) {
+      const input = orderNicknameLabel.querySelector("input");
+      input.readOnly = false;
+      input.value = "";
+      input.placeholder = "你的稱呼";
+    }
     discountBox.innerHTML = "";
   }
+}
+
+async function loadCurrentProfile() {
+  currentProfile = null;
+  if (!currentUser) return;
+  const { data, error } = await supabaseClient.from("profiles").select("id,email,display_name,role").eq("id", currentUser.id).maybeSingle();
+  if (!error) currentProfile = data || null;
 }
 
 async function loadCustomerDiscount() {
@@ -861,15 +888,46 @@ couponCodeInput?.addEventListener("keydown", event => {
 accountBtn.addEventListener("click",()=>{accountPanel.classList.toggle("open");});
 accountMode.addEventListener("click",()=>{accountSignupMode=!accountSignupMode; accountStatus.textContent=""; updateAccountUI();});
 accountForm.addEventListener("submit",async e=>{
-  e.preventDefault(); accountSubmit.disabled=true; accountStatus.textContent=accountSignupMode?"建立帳號中……":"登入中……";
-  const email=document.getElementById("accountEmail").value.trim(); const password=document.getElementById("accountPassword").value;
-  const result=accountSignupMode ? await supabaseClient.auth.signUp({email,password}) : await supabaseClient.auth.signInWithPassword({email,password});
-  if(result.error){accountStatus.textContent="✕ "+result.error.message; accountSubmit.disabled=false; return;}
-  if(accountSignupMode && !result.data.session){accountStatus.textContent="✓ 註冊成功，請到 Email 完成驗證後再登入。"; accountSubmit.disabled=false; return;}
-  currentUser=result.data.user; accountSignupMode=false; accountSubmit.disabled=false; await loadCustomerDiscount(); accountPanel.classList.add("open");
+  e.preventDefault();
+  accountSubmit.disabled=true;
+  accountStatus.textContent=accountSignupMode?"建立帳號中……":"登入中……";
+  const email=document.getElementById("accountEmail").value.trim();
+  const password=document.getElementById("accountPassword").value;
+  const nickname=accountNickname?.value.trim() || "";
+  if(accountSignupMode && !nickname){
+    accountStatus.textContent="✕ 請先設定你的暱稱。";
+    accountSubmit.disabled=false;
+    return;
+  }
+  const result=accountSignupMode
+    ? await supabaseClient.auth.signUp({email,password,options:{data:{display_name:nickname}}})
+    : await supabaseClient.auth.signInWithPassword({email,password});
+  if(result.error){accountStatus.textContent="✕ "+result.error.message;accountSubmit.disabled=false;return;}
+  if(accountSignupMode && !result.data.session){accountStatus.textContent="✓ 註冊成功，請到 Email 完成驗證後再登入。";accountSubmit.disabled=false;return;}
+  currentUser=result.data.user;
+  accountSignupMode=false;
+  accountSubmit.disabled=false;
+  await loadCurrentProfile();
+  await loadCustomerDiscount();
+  updateAccountUI();
+  accountPanel.classList.add("open");
 });
-accountLogout.addEventListener("click",async()=>{await supabaseClient.auth.signOut();currentUser=null;currentDiscount=null;updateAccountUI();updateOrderPricePreview();});
-supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;loadCustomerDiscount();});
+accountLogout.addEventListener("click",async()=>{
+  await supabaseClient.auth.signOut();
+  currentUser=null;
+  currentProfile=null;
+  currentDiscount=null;
+  updateAccountUI();
+  updateOrderPricePreview();
+});
+supabaseClient.auth.onAuthStateChange(async (_event,session)=>{
+  currentUser=session?.user||null;
+  await loadCurrentProfile();
+  await loadCustomerDiscount();
+  updateAccountUI();
+  updateOrderPricePreview();
+});
+
 
 
 
@@ -1228,7 +1286,7 @@ orderForm.addEventListener("submit", async event => {
 
     const formData = new FormData(orderForm);
 
-    const name = formData.get("name")?.trim();
+    const name = currentUser ? (currentProfile?.display_name || "").trim() : formData.get("name")?.trim();
     const contactType = formData.get("contactType");
     const contact = formData.get("contact")?.trim();
     const service = formData.get("service");
@@ -1384,15 +1442,10 @@ lookupForm.addEventListener("submit", async event => {
     const contact =
       document.getElementById("lookupContact").value.trim();
 
-    const { data, error } =
-      await supabaseClient.rpc("lookup_order", {
-        p_order_number: orderNumber,
-        p_contact: contact
-      });
-
-    if (error) throw error;
-
-    const order = data?.[0];
+    const response = await fetch("/api/lookup-order", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({orderNumber,identifier:contact}) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "查詢失敗。");
+    const order = result.order;
 
     if (!order) {
       lookupStatus.textContent =
