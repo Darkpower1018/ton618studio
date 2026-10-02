@@ -715,6 +715,20 @@
   </div>
 </section>
 
+<section class="og-manager">
+  <h2>網站分享封面</h2>
+  <div class="card">
+    <div class="work-upload">
+      <strong>連結預覽封面</strong>
+      <small>上傳你自己設計的網站分享封面。建議使用 1200 × 630 px 的 JPG、PNG 或 WebP。這張圖片會在 Discord、Facebook、Messenger 等平台分享網站連結時使用。</small>
+      <input type="file" id="siteOgFile" accept="image/jpeg,image/png,image/webp">
+      <button class="primary-btn" type="button" id="uploadSiteOgBtn">＋ 上傳分享封面</button>
+      <div class="status" id="siteOgStatus"></div>
+    </div>
+    <div id="siteOgPreview"><div class="empty">載入目前分享封面中……</div></div>
+  </div>
+</section>
+
 <section class="gunsync-video-manager">
   <h2>GUNSYNC 展示影片</h2>
   <div class="card">
@@ -893,6 +907,7 @@
     await loadWorks();
     await loadGunsyncVideo();
     await loadSiteLogo();
+    await loadSiteOg();
 
   }
 
@@ -1151,6 +1166,67 @@ orderStatusFilter.addEventListener(
     siteLogoFile.value = "";
     await loadSiteLogo();
     uploadSiteLogoBtn.disabled = false;
+  });
+
+
+  // =========================
+  // 網站分享封面
+  // =========================
+
+  const siteOgFile = document.getElementById("siteOgFile");
+  const uploadSiteOgBtn = document.getElementById("uploadSiteOgBtn");
+  const siteOgStatus = document.getElementById("siteOgStatus");
+  const siteOgPreview = document.getElementById("siteOgPreview");
+  const SITE_OG_PATH = "site/og-image";
+
+  async function loadSiteOg() {
+    if (!siteOgPreview) return;
+    const { data } = supabaseClient.storage.from("works").getPublicUrl(SITE_OG_PATH);
+    const url = data?.publicUrl ? data.publicUrl + "?v=" + Date.now() : "";
+    siteOgPreview.innerHTML = url
+      ? '<div class="site-logo-preview"><img src="' + escapeAttribute(url) + '" alt="網站分享封面" style="display:block;width:100%;max-width:600px;height:auto;border:1px solid #ffffff12;border-radius:6px;"></div>'
+      : '<div class="empty">目前沒有分享封面。</div>';
+  }
+
+  uploadSiteOgBtn?.addEventListener("click", async () => {
+    const file = siteOgFile?.files?.[0];
+    if (!file) {
+      siteOgStatus.textContent = "請先選擇 JPG、PNG 或 WebP 封面。";
+      return;
+    }
+
+    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+      siteOgStatus.textContent = "只接受 JPG、PNG 或 WebP。";
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      siteOgStatus.textContent = "分享封面檔案不能超過 10MB。";
+      return;
+    }
+
+    uploadSiteOgBtn.disabled = true;
+    siteOgStatus.textContent = "上傳中……";
+
+    const { error } = await supabaseClient.storage
+      .from("works")
+      .upload(SITE_OG_PATH, file, {
+        upsert: true,
+        contentType: file.type,
+        cacheControl: "3600"
+      });
+
+    if (error) {
+      console.error(error);
+      siteOgStatus.textContent = "✕ 上傳失敗：" + error.message;
+      uploadSiteOgBtn.disabled = false;
+      return;
+    }
+
+    siteOgStatus.textContent = "✓ 分享封面已更新。";
+    siteOgFile.value = "";
+    await loadSiteOg();
+    uploadSiteOgBtn.disabled = false;
   });
 
 
@@ -1850,6 +1926,7 @@ function createOrderHTML(order) {
   loadWorks();
   loadGunsyncVideo();
   loadSiteLogo();
+  loadSiteOg();
 
 });
 
