@@ -855,16 +855,16 @@
   <div class="card">
     <div class="work-upload">
       <strong>會員帳號搜尋</strong>
-      <small>輸入 Email 或部分 Email，直接查看該帳號目前的優惠設定。</small>
+      <small>輸入 Email 或暱稱，直接查看該帳號目前的優惠設定。</small>
       <div style="display:flex;gap:10px;align-items:stretch;">
-        <input type="text" id="accountSearchInput" placeholder="搜尋帳號 Email" style="margin-top:0;">
+        <input type="text" id="accountSearchInput" placeholder="搜尋 Email 或暱稱" style="margin-top:0;">
         <button class="primary-btn" type="button" id="accountSearchBtn" style="width:auto;min-width:100px;">搜尋</button>
       </div>
       <div id="accountSearchResults"></div>
 
       <strong style="margin-top:10px;">新增 / 修改客戶優惠</strong>
       <small>輸入已註冊會員的 Email。優惠由後台控制，客戶無法自行修改。</small>
-      <input type="email" id="discountEmail" placeholder="客戶 Email">
+      <input type="email" id="discountEmail" placeholder="客戶 Email 或暱稱">
       <select id="discountType"><option value="percent">百分比折扣</option><option value="fixed">固定金額減免</option></select>
       <input type="number" id="discountValue" min="0" step="0.01" placeholder="例如 10 = 10% 或 HKD $10">
       <input type="datetime-local" id="discountExpires">
@@ -971,7 +971,7 @@
   <input
     type="text"
     id="orderSearch"
-    placeholder="🔎 搜尋客戶名稱、聯絡方式、服務..."
+    placeholder="🔎 搜尋 Email、暱稱、聯絡方式、服務..."
   >
 
   <select id="orderStatusFilter">
@@ -1064,13 +1064,13 @@
     }
     const ids=[...new Set((data||[]).map(x=>x.user_id).filter(Boolean))];
     let profiles=[];
-    if(ids.length){ const p=await supabaseClient.from("profiles").select("id,email").in("id",ids); profiles=p.data||[]; }
-    const emailMap=Object.fromEntries(profiles.map(p=>[p.id,p.email||p.id]));
+    if(ids.length){ const p=await supabaseClient.from("profiles").select("id,email,display_name").in("id",ids); profiles=p.data||[]; }
+    const profileMap=Object.fromEntries(profiles.map(p=>[p.id,p]));
     if(!data?.length){discountList.innerHTML='<div class="empty">目前沒有會員優惠。</div>';return;}
     discountList.innerHTML=data.map(d=>{
       const value=d.type==="percent"?Number(d.value)+"% OFF":"HKD -$"+Number(d.value).toFixed(2);
       const exp=d.expires_at?new Date(d.expires_at).toLocaleString("zh-HK"):"永久";
-      return '<div class="card" style="margin-top:12px;padding:18px;"><strong>'+escapeHtml(emailMap[d.user_id]||d.user_id)+'</strong><div class="muted" style="margin-top:7px;">'+escapeHtml(value)+'｜'+escapeHtml(d.active?"啟用":"停用")+'｜到期：'+escapeHtml(exp)+(d.note?"<br>備註："+escapeHtml(d.note):"")+'</div><button type="button" class="toggle-discount-btn" data-discount-id="'+escapeAttribute(d.id)+'" data-active="'+escapeAttribute(d.active)+'" style="margin-top:12px;">'+(d.active?"停用優惠":"啟用優惠")+'</button></div>';
+      return '<div class="card" style="margin-top:12px;padding:18px;"><strong>'+escapeHtml(profileMap[d.user_id]?.display_name || profileMap[d.user_id]?.email || d.user_id)+'</strong><div class="muted" style="margin-top:7px;">'+escapeHtml(value)+'｜'+escapeHtml(d.active?"啟用":"停用")+'｜到期：'+escapeHtml(exp)+(d.note?"<br>備註："+escapeHtml(d.note):"")+'</div><button type="button" class="toggle-discount-btn" data-discount-id="'+escapeAttribute(d.id)+'" data-active="'+escapeAttribute(d.active)+'" style="margin-top:12px;">'+(d.active?"停用優惠":"啟用優惠")+'</button></div>';
     }).join("");
   }
 
@@ -1082,8 +1082,9 @@
     const note=document.getElementById("discountNote").value.trim();
     if(!email || !Number.isFinite(value) || value<=0 || (type==="percent" && value>100)){discountStatus.textContent="請輸入有效的 Email、優惠數值（百分比不可超過 100）。";return;}
     discountStatus.textContent="尋找會員中……"; saveDiscountBtn.disabled=true;
-    const {data:profiles,error:pError}=await supabaseClient.from("profiles").select("id,email").ilike("email",email).limit(1);
-    if(pError || !profiles?.[0]){discountStatus.textContent="找不到這個會員。請確認他已經註冊帳號。";saveDiscountBtn.disabled=false;return;}
+    const {data:profiles,error:pError}=await supabaseClient.from("profiles").select("id,email,display_name").or("email.ilike.%" + email.replace(/,/g,"") + "%,display_name.ilike.%" + email.replace(/,/g,"") + "%").limit(20);
+    if(pError || !profiles?.length){discountStatus.textContent="找不到這個會員。請確認他已經註冊帳號。";saveDiscountBtn.disabled=false;return;}
+    if(profiles.length > 1){discountStatus.textContent="找到多個帳號，請輸入更完整的 Email 或暱稱。";saveDiscountBtn.disabled=false;return;}
     const {error}=await supabaseClient.from("discounts").insert({user_id:profiles[0].id,type,value,active:true,expires_at:expiresRaw?new Date(expiresRaw).toISOString():null,note:note||null});
     if(error){discountStatus.textContent="套用優惠失敗："+error.message;saveDiscountBtn.disabled=false;return;}
     discountStatus.textContent="✓ 優惠已套用。";document.getElementById("discountValue").value="";document.getElementById("discountExpires").value="";document.getElementById("discountNote").value="";saveDiscountBtn.disabled=false;await loadDiscounts();
@@ -1266,7 +1267,7 @@
     const { data: profiles, error: profileError } = await supabaseClient
       .from("profiles")
       .select("id,email,display_name,created_at")
-      .ilike("email", "%" + keyword + "%")
+      .or("email.ilike.%" + keyword.replace(/,/g,"") + "%,display_name.ilike.%" + keyword.replace(/,/g,"") + "%")
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -1313,6 +1314,7 @@
 
     accountSearchResults.innerHTML = profiles.map(profile => {
       const email = profile.email || profile.id;
+      const nickname = profile.display_name || "";
       const accountDiscounts = discountMap[profile.id] || [];
 
       const discountHtml = accountDiscounts.length
@@ -1342,7 +1344,7 @@
         : '<div class="muted" style="margin-top:10px;">目前沒有優惠。</div>';
 
       return '<div class="card" style="margin-top:10px;padding:16px;">' +
-        '<strong style="font-size:15px;">' + escapeHtml(email) + '</strong>' +
+        '<strong style="font-size:15px;">' + escapeHtml(nickname || email) + '</strong>' + (nickname && email ? '<div class="muted" style="margin-top:4px;">' + escapeHtml(email) + '</div>' : '') +
         discountHtml +
         '</div>';
     }).join("");
@@ -1456,6 +1458,15 @@
 
     allOrders = data || [];
 
+    if (!error && allOrders.length) {
+      const userIds = [...new Set(allOrders.map(order => order.user_id).filter(Boolean))];
+      if (userIds.length) {
+        const { data:profiles } = await supabaseClient.from("profiles").select("id,email,display_name").in("id", userIds);
+        const profileMap = Object.fromEntries((profiles || []).map(profile => [profile.id, profile]));
+        allOrders = allOrders.map(order => ({...order, customer_email: profileMap[order.user_id]?.email || "", customer_nickname: profileMap[order.user_id]?.display_name || order.customer_name || ""}));
+      }
+    }
+
     if (error) {
 
       console.error(error);
@@ -1502,6 +1513,8 @@
 
       const text = [
         order.customer_name,
+        order.customer_nickname,
+        order.customer_email,
         order.contact_type,
         order.contact,
         order.service,
@@ -2330,8 +2343,9 @@ function createOrderHTML(order) {
         <div>
           客戶：
           <strong>
-            ${escapeHtml(order.customer_name || "")}
+            ${escapeHtml(order.customer_nickname || order.customer_name || "")}
           </strong>
+          ${order.customer_email ? `<div style="color:#8e8998;font-size:12px;margin-top:3px;">${escapeHtml(order.customer_email)}</div>` : ""}
         </div>
 
         <div>
