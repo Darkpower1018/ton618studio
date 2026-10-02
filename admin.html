@@ -1264,12 +1264,40 @@
     accountSearchBtn.textContent = "搜尋中……";
     accountSearchResults.innerHTML = '<div class="status">搜尋帳號中……</div>';
 
-    const { data: profiles, error: profileError } = await supabaseClient
+    // Email 與暱稱分開查詢，再合併結果，避免 .or() 在特殊字元下解析失敗。
+    const safeKeyword = keyword.replace(/[\\%_]/g, "\\\\    const { data: profiles, error: profileError } = await supabaseClient
       .from("profiles")
       .select("id,email,display_name,created_at")
       .or("email.ilike.%" + keyword.replace(/,/g,"") + "%,display_name.ilike.%" + keyword.replace(/,/g,"") + "%")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(20);");
+
+    const [
+      { data: emailProfiles, error: emailError },
+      { data: nicknameProfiles, error: nicknameError }
+    ] = await Promise.all([
+      supabaseClient
+        .from("profiles")
+        .select("id,email,display_name,created_at")
+        .ilike("email", "%" + safeKeyword + "%")
+        .limit(20),
+      supabaseClient
+        .from("profiles")
+        .select("id,email,display_name,created_at")
+        .ilike("display_name", "%" + safeKeyword + "%")
+        .limit(20)
+    ]);
+
+    const profileError = emailError || nicknameError;
+
+    const profileMap = new Map();
+    [...(emailProfiles || []), ...(nicknameProfiles || [])].forEach(profile => {
+      if (!profileMap.has(profile.id)) profileMap.set(profile.id, profile);
+    });
+
+    const profiles = Array.from(profileMap.values())
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      .slice(0, 20);
 
     if (profileError) {
       console.error(profileError);
