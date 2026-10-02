@@ -745,7 +745,7 @@ async function loadCustomerDiscount() {
 function updateOrderPricePreview() {
   if (!orderPricePreview || !serviceSelect) return;
   const value = serviceSelect.value || "";
-  const match = value.match(/HKD \\$([0-9.]+)/);
+  const match = value.match(/HKD \$([0-9.]+)/);
   if (!match) { orderOriginalPrice.textContent = "—"; orderPricePreview.innerHTML = "登入後如有專屬優惠，系統會自動套用。"; return; }
   const original = Number(match[1]);
   orderOriginalPrice.textContent = "HKD $" + original.toFixed(2);
