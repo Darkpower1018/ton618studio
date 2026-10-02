@@ -855,7 +855,7 @@
   <div class="card">
     <div class="work-upload">
       <strong>會員帳號搜尋</strong>
-      <small>輸入 Email 或部分 Email，搜尋已註冊帳號；點擊搜尋結果即可帶入下方優惠設定。</small>
+      <small>輸入 Email 或部分 Email，直接查看該帳號目前的優惠設定。</small>
       <div style="display:flex;gap:10px;align-items:stretch;">
         <input type="text" id="accountSearchInput" placeholder="搜尋帳號 Email" style="margin-top:0;">
         <button class="primary-btn" type="button" id="accountSearchBtn" style="width:auto;min-width:100px;">搜尋</button>
@@ -872,6 +872,29 @@
       <button class="primary-btn" type="button" id="saveDiscountBtn">＋ 套用優惠</button>
       <div class="status" id="discountStatus"></div>
     </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="work-upload">
+        <strong>🎟 優惠碼管理</strong>
+        <small>建立可公開分享的優惠碼。百分比輸入 10 代表 10% OFF；固定金額輸入 20 代表減 HKD $20。</small>
+        <input type="text" id="newCouponCode" placeholder="優惠碼，例如 TON61810" maxlength="40" style="text-transform:uppercase;">
+        <select id="newCouponType">
+          <option value="percent">百分比折扣</option>
+          <option value="fixed">固定金額減免</option>
+        </select>
+        <input type="number" id="newCouponValue" min="0.01" step="0.01" placeholder="例如 10">
+        <input type="number" id="newCouponMaxUses" min="0" step="1" placeholder="最大使用次數（0 = 無限）">
+        <label style="display:flex;align-items:center;gap:8px;margin:0;color:#d9d4e1;">
+          <input type="checkbox" id="newCouponOnePerUser" style="width:auto;margin:0;">
+          每個帳號只能使用一次
+        </label>
+        <input type="datetime-local" id="newCouponExpires">
+        <input type="text" id="newCouponNote" placeholder="優惠碼備註（可選）">
+        <button class="primary-btn" type="button" id="createCouponBtn">＋ 建立優惠碼</button>
+        <div class="status" id="couponAdminStatus"></div>
+      </div>
+      <div id="couponList"><div class="empty">載入優惠碼中……</div></div>
+    </div>
+
     <div id="discountList"><div class="empty">載入會員優惠中……</div></div>
   </div>
 </section>
@@ -1073,6 +1096,151 @@
     if(error) alert("更新優惠失敗："+error.message); else await loadDiscounts();
   });
 
+
+  // =========================
+  // 優惠碼管理
+  // =========================
+  const couponList = document.getElementById("couponList");
+  const couponAdminStatus = document.getElementById("couponAdminStatus");
+  const createCouponBtn = document.getElementById("createCouponBtn");
+
+  async function loadCoupons() {
+    if (!couponList) return;
+
+    const { data, error } = await supabaseClient
+      .from("coupons")
+      .select("id,code,type,value,active,expires_at,max_uses,one_per_user,note,created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      couponList.innerHTML = '<div class="empty">無法載入優惠碼。<br><br>' + escapeHtml(error.message) + '<br><br>請先執行 supabase/coupons.sql。</div>';
+      return;
+    }
+
+    const ids = (data || []).map(c => c.id);
+    let usages = [];
+    if (ids.length) {
+      const usageResult = await supabaseClient
+        .from("coupon_redemptions")
+        .select("coupon_id")
+        .in("coupon_id", ids);
+      usages = usageResult.data || [];
+    }
+
+    const usageMap = {};
+    usages.forEach(row => { usageMap[row.coupon_id] = (usageMap[row.coupon_id] || 0) + 1; });
+
+    if (!data?.length) {
+      couponList.innerHTML = '<div class="empty">目前沒有優惠碼。</div>';
+      return;
+    }
+
+    couponList.innerHTML = data.map(coupon => {
+      const used = usageMap[coupon.id] || 0;
+      const value = coupon.type === "percent"
+        ? Number(coupon.value) + "% OFF"
+        : "HKD -$" + Number(coupon.value).toFixed(2);
+      const expiry = coupon.expires_at
+        ? new Date(coupon.expires_at).toLocaleString("zh-HK")
+        : "永久";
+      const limit = Number(coupon.max_uses || 0) > 0
+        ? used + " / " + coupon.max_uses
+        : used + " / 無限";
+
+      return '<div class="card" style="margin-top:12px;padding:18px;">' +
+        '<strong style="font-size:17px;letter-spacing:.06em;">' + escapeHtml(coupon.code) + '</strong>' +
+        '<div class="muted" style="margin-top:7px;">' +
+        escapeHtml(value) + '｜' +
+        escapeHtml(coupon.active ? "啟用" : "停用") +
+        '｜使用：' + escapeHtml(limit) +
+        '｜到期：' + escapeHtml(expiry) +
+        (coupon.one_per_user ? '<br>每個帳號限用一次' : '') +
+        (coupon.note ? '<br>備註：' + escapeHtml(coupon.note) : '') +
+        '</div>' +
+        '<button type="button" class="toggle-coupon-btn" data-coupon-id="' + escapeAttribute(coupon.id) + '" data-active="' + escapeAttribute(coupon.active) + '" style="margin-top:12px;">' +
+        (coupon.active ? "停用優惠碼" : "啟用優惠碼") +
+        '</button>' +
+        '</div>';
+    }).join("");
+  }
+
+  createCouponBtn?.addEventListener("click", async () => {
+    const code = document.getElementById("newCouponCode").value.trim().toUpperCase();
+    const type = document.getElementById("newCouponType").value;
+    const value = Number(document.getElementById("newCouponValue").value);
+    const maxUses = Number(document.getElementById("newCouponMaxUses").value || 0);
+    const onePerUser = document.getElementById("newCouponOnePerUser").checked;
+    const expiresRaw = document.getElementById("newCouponExpires").value;
+    const note = document.getElementById("newCouponNote").value.trim();
+
+    if (!/^[A-Z0-9_-]+$/.test(code)) {
+      couponAdminStatus.textContent = "優惠碼只能使用英文字母、數字、底線或連字號。";
+      return;
+    }
+    if (!Number.isFinite(value) || value <= 0 || (type === "percent" && value > 100)) {
+      couponAdminStatus.textContent = "請輸入有效的優惠數值（百分比不可超過 100）。";
+      return;
+    }
+    if (!Number.isInteger(maxUses) || maxUses < 0) {
+      couponAdminStatus.textContent = "最大使用次數必須是 0 或正整數。";
+      return;
+    }
+
+    createCouponBtn.disabled = true;
+    createCouponBtn.textContent = "建立中……";
+    couponAdminStatus.textContent = "";
+
+    const { error } = await supabaseClient.from("coupons").insert({
+      code,
+      type,
+      value,
+      active: true,
+      expires_at: expiresRaw ? new Date(expiresRaw).toISOString() : null,
+      max_uses: maxUses,
+      one_per_user: onePerUser,
+      note: note || null
+    });
+
+    if (error) {
+      couponAdminStatus.textContent = "建立失敗：" + error.message;
+      createCouponBtn.disabled = false;
+      createCouponBtn.textContent = "＋ 建立優惠碼";
+      return;
+    }
+
+    couponAdminStatus.textContent = "✓ 優惠碼 " + code + " 已建立。";
+    document.getElementById("newCouponCode").value = "";
+    document.getElementById("newCouponValue").value = "";
+    document.getElementById("newCouponMaxUses").value = "";
+    document.getElementById("newCouponOnePerUser").checked = false;
+    document.getElementById("newCouponExpires").value = "";
+    document.getElementById("newCouponNote").value = "";
+    createCouponBtn.disabled = false;
+    createCouponBtn.textContent = "＋ 建立優惠碼";
+    await loadCoupons();
+  });
+
+  document.addEventListener("click", async event => {
+    const btn = event.target.closest(".toggle-coupon-btn");
+    if (!btn) return;
+
+    const id = btn.dataset.couponId;
+    const active = btn.dataset.active === "true";
+    btn.disabled = true;
+
+    const { error } = await supabaseClient
+      .from("coupons")
+      .update({ active: !active })
+      .eq("id", id);
+
+    if (error) {
+      alert("更新優惠碼失敗：" + error.message);
+      btn.disabled = false;
+      return;
+    }
+
+    await loadCoupons();
+  });
 
   // =========================
   // 會員帳號搜尋
@@ -2277,6 +2445,7 @@ function createOrderHTML(order) {
   loadSiteLogo();
   loadSiteOg();
   loadDiscounts();
+  loadCoupons();
 
 });
 
@@ -2709,6 +2878,7 @@ document.addEventListener("click", async event => {
   checkSession();
   loadServices();
   loadWorks();
+  loadCoupons();
 
 </script>
 
