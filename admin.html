@@ -667,9 +667,10 @@
       </label>
 
       <button
-        type="submit"
+        type="button"
         class="primary-btn"
         id="loginBtn"
+        onclick="window.adminLogin()"
       >
         登入
       </button>
@@ -871,18 +872,11 @@
   // 登入
   // =========================
 
-  loginForm.addEventListener("submit", async (event) => {
+  window.adminLogin = async function () {
 
-    event.preventDefault();
-
-    if (!window.supabase || !supabaseClient) {
-      loginStatus.textContent =
-        "✕ Supabase 載入失敗，請重新整理頁面後再試。";
+    if (!loginForm || !loginBtn || !loginStatus) {
       return;
     }
-
-    loginBtn.disabled = true;
-    loginStatus.textContent = "登入中……";
 
     const email =
       document.getElementById("email").value.trim();
@@ -890,14 +884,27 @@
     const password =
       document.getElementById("password").value;
 
+    if (!email || !password) {
+      loginStatus.textContent = "請輸入 Email 和 Password。";
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginStatus.textContent = "登入中……";
+
+    if (!supabaseClient) {
+      loginStatus.textContent =
+        "✕ Supabase 載入失敗，請重新整理頁面後再試。";
+      loginBtn.disabled = false;
+      return;
+    }
+
     try {
-      const {
-        data,
-        error
-      } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
 
       if (error) {
         console.error(error);
@@ -916,8 +923,7 @@
         "✕ 登入時發生錯誤：" + (error?.message || error);
       loginBtn.disabled = false;
     }
-
-  });
+  };
 
 
   // =========================
