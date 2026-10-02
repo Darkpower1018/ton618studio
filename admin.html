@@ -6,7 +6,7 @@
 
   <title>能量工作室｜管理後台</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 
   <style>
@@ -317,77 +317,21 @@
     }
 
     .service-category-editor {
-      display: grid;
-      gap: 10px;
-      padding: 18px;
-      margin-top: 4px;
-      border: 1px solid rgba(164,103,255,0.18);
-      background: rgba(164,103,255,0.045);
-      border-radius: 15px;
+      display: grid; gap: 10px; padding: 18px; margin-top: 4px;
+      border: 1px solid rgba(164,103,255,0.18); background: rgba(164,103,255,0.045); border-radius: 15px;
     }
-
-    .service-category-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
+    .service-category-title { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .service-category-title strong { color:#f4f1fa; font-size:17px; }
+    .service-category-title span { color:#9b96a8; font-size:12px; }
+    .category-name-input, .category-description-input {
+      width:100%; box-sizing:border-box; border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.28); color:#f4f1fa; padding:12px 14px; border-radius:10px; outline:none; font:inherit;
     }
-
-    .service-category-title strong {
-      color: #f4f1fa;
-      font-size: 17px;
-    }
-
-    .service-category-title span {
-      color: #9b96a8;
-      font-size: 12px;
-    }
-
-    .category-name-input,
-    .category-description-input {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.28);
-      color: #f4f1fa;
-      padding: 12px 14px;
-      border-radius: 10px;
-      outline: none;
-      font: inherit;
-    }
-
-    .category-description-input {
-      resize: vertical;
-      min-height: 76px;
-      line-height: 1.6;
-    }
-
-    .category-name-input:focus,
-    .category-description-input:focus {
-      border-color: rgba(164,103,255,0.6);
-      background: rgba(255,255,255,0.045);
-    }
-
-    .category-name-input::placeholder,
-    .category-description-input::placeholder {
-      color: #777080;
-    }
-
-    .save-category-btn {
-      width: fit-content;
-      border: 1px solid rgba(164,103,255,0.35);
-      background: rgba(164,103,255,0.08);
-      color: #d9ccff;
-      padding: 9px 14px;
-      border-radius: 9px;
-      cursor: pointer;
-      font: inherit;
-    }
-
-    .save-category-btn:hover {
-      background: rgba(164,103,255,0.14);
-      border-color: rgba(164,103,255,0.55);
-    }
+    .category-description-input { resize:vertical; min-height:76px; line-height:1.6; }
+    .category-name-input:focus, .category-description-input:focus { border-color:rgba(164,103,255,0.6); background:rgba(255,255,255,0.045); }
+    .category-name-input::placeholder, .category-description-input::placeholder { color:#777080; }
+    .save-category-btn { width:fit-content; border:1px solid rgba(164,103,255,0.35); background:rgba(164,103,255,0.08); color:#d9ccff; padding:9px 14px; border-radius:9px; cursor:pointer; font:inherit; }
+    .save-category-btn:hover { background:rgba(164,103,255,0.14); border-color:rgba(164,103,255,0.55); }
 
     .service-item {
       display: grid;
@@ -667,10 +611,9 @@
       </label>
 
       <button
-        type="button"
+        type="submit"
         class="primary-btn"
         id="loginBtn"
-        onclick="window.adminLogin()"
       >
         登入
       </button>
@@ -827,12 +770,10 @@
     "sb_publishable_RzkPac46JOSRgGi2k34Jug_ddHxE-Nh";
 
   const supabaseClient =
-    window.supabase && typeof window.supabase.createClient === "function"
-      ? window.supabase.createClient(
-          SUPABASE_URL,
-          SUPABASE_PUBLISHABLE_KEY
-        )
-      : null;
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
 
   const loginCard =
@@ -872,11 +813,14 @@
   // 登入
   // =========================
 
-  window.adminLogin = async function () {
+  loginForm.addEventListener("submit", async (event) => {
 
-    if (!loginForm || !loginBtn || !loginStatus) {
-      return;
-    }
+    event.preventDefault();
+
+    loginBtn.disabled = true;
+
+    loginStatus.textContent = "登入中……";
+
 
     const email =
       document.getElementById("email").value.trim();
@@ -884,46 +828,34 @@
     const password =
       document.getElementById("password").value;
 
-    if (!email || !password) {
-      loginStatus.textContent = "請輸入 Email 和 Password。";
-      return;
-    }
 
-    loginBtn.disabled = true;
-    loginStatus.textContent = "登入中……";
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    if (!supabaseClient) {
-      loginStatus.textContent =
-        "✕ Supabase 載入失敗，請重新整理頁面後再試。";
-      loginBtn.disabled = false;
-      return;
-    }
 
-    try {
-      const { error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
+    if (error) {
 
-      if (error) {
-        console.error(error);
-        loginStatus.textContent =
-          "✕ 登入失敗：" + error.message;
-        loginBtn.disabled = false;
-        return;
-      }
-
-      loginStatus.textContent = "";
-      await showDashboard();
-
-    } catch (error) {
       console.error(error);
+
       loginStatus.textContent =
-        "✕ 登入時發生錯誤：" + (error?.message || error);
+        "✕ 登入失敗：" + error.message;
+
       loginBtn.disabled = false;
+
+      return;
     }
-  };
+
+
+    loginStatus.textContent = "";
+
+    showDashboard();
+
+  });
 
 
   // =========================
@@ -1119,85 +1051,22 @@ orderStatusFilter.addEventListener(
     serviceList.innerHTML = categories.map(category => {
       const items = data.filter(item => item.service === category);
       const first = items[0] || {};
-
       return `
         <div class="service-category-editor">
-          <div class="service-category-title">
-            <strong>${escapeHtml(category)}</strong>
-            <span>分類設定</span>
-          </div>
-
-          <input
-            type="text"
-            class="category-name-input"
-            data-category="${escapeAttribute(category)}"
-            value="${escapeAttribute(category)}"
-            placeholder="分類名稱"
-          >
-
-          <textarea
-            class="category-description-input"
-            data-category="${escapeAttribute(category)}"
-            rows="3"
-            placeholder="這個分類在網站上顯示的簡介……"
-          >${escapeHtml(first.category_description || "")}</textarea>
-
-          <button
-            type="button"
-            class="save-category-btn"
-            data-category="${escapeAttribute(category)}"
-          >
-            儲存分類名稱與簡介
-          </button>
+          <div class="service-category-title"><strong>${escapeHtml(category)}</strong><span>分類設定</span></div>
+          <input type="text" class="category-name-input" data-category="${escapeAttribute(category)}" value="${escapeAttribute(category)}" placeholder="分類名稱">
+          <textarea class="category-description-input" data-category="${escapeAttribute(category)}" rows="3" placeholder="這個分類在網站上顯示的簡介……">${escapeHtml(first.category_description || "")}</textarea>
+          <button type="button" class="save-category-btn" data-category="${escapeAttribute(category)}">儲存分類名稱與簡介</button>
         </div>
-
         ${items.map(service => `
           <div class="service-item">
-            <div>
-              <strong>${escapeHtml(service.service)}</strong>
-              <span>${escapeHtml(service.package)}</span>
-
-              <textarea
-                class="service-description-input"
-                data-service-id="${escapeAttribute(service.id)}"
-                rows="2"
-                placeholder="服務描述"
-              >${escapeHtml(service.description || "")}</textarea>
+            <div><strong>${escapeHtml(service.service)}</strong><span>${escapeHtml(service.package)}</span>
+              <textarea class="service-description-input" data-service-id="${escapeAttribute(service.id)}" rows="2" placeholder="服務描述">${escapeHtml(service.description || "")}</textarea>
             </div>
-
-            <div class="service-price-edit">
-              <span>HKD $</span>
-              <input
-                type="number"
-                class="service-price-input"
-                data-service-id="${escapeAttribute(service.id)}"
-                value="${escapeAttribute(String(service.price))}"
-                min="0"
-                step="1"
-              >
-            </div>
-
-            <button
-              class="save-price-btn"
-              data-service-id="${escapeAttribute(service.id)}"
-            >
-              儲存
-            </button>
-
-            <button
-              class="toggle-service-btn"
-              data-service-id="${escapeAttribute(service.id)}"
-              data-active="${service.active}"
-            >
-              ${service.active ? "停用" : "啟用"}
-            </button>
-
-            <button
-              class="delete-service-btn"
-              data-service-id="${escapeAttribute(service.id)}"
-            >
-              刪除
-            </button>
+            <div class="service-price-edit"><span>HKD $</span><input type="number" class="service-price-input" data-service-id="${escapeAttribute(service.id)}" value="${escapeAttribute(String(service.price))}" min="0" step="1"></div>
+            <button class="save-price-btn" data-service-id="${escapeAttribute(service.id)}">儲存</button>
+            <button class="toggle-service-btn" data-service-id="${escapeAttribute(service.id)}" data-active="${service.active}">${service.active ? "停用" : "啟用"}</button>
+            <button class="delete-service-btn" data-service-id="${escapeAttribute(service.id)}">刪除</button>
           </div>
         `).join("")}
       `;
@@ -2025,74 +1894,23 @@ document.addEventListener("change", async (event) => {
   document.addEventListener("click", async (event) => {
 
   const categoryButton = event.target.closest(".save-category-btn");
-
   if (categoryButton) {
     const oldCategory = categoryButton.dataset.category;
-    const nameInput = document.querySelector(
-      `.category-name-input[data-category="${CSS.escape(oldCategory)}"]`
-    );
-    const descriptionInput = document.querySelector(
-      `.category-description-input[data-category="${CSS.escape(oldCategory)}"]`
-    );
-
+    const nameInput = document.querySelector(`.category-name-input[data-category="${CSS.escape(oldCategory)}"]`);
+    const descriptionInput = document.querySelector(`.category-description-input[data-category="${CSS.escape(oldCategory)}"]`);
     if (!oldCategory || !nameInput || !descriptionInput) return;
-
     const newCategory = nameInput.value.trim();
     const description = descriptionInput.value.trim();
-
-    if (!newCategory) {
-      alert("請輸入分類名稱。");
-      return;
+    if (!newCategory) { alert("請輸入分類名稱。"); return; }
+    if (newCategory !== oldCategory) {
+      const { data: existingRows, error: checkError } = await supabaseClient.from("services").select("id").eq("service", newCategory).limit(1);
+      if (checkError) { console.error(checkError); alert("檢查分類名稱失敗：" + checkError.message); return; }
+      if ((existingRows || []).length > 0) { alert("這個分類名稱已經存在，請使用其他名稱。"); return; }
     }
-
-    const isRenaming = newCategory !== oldCategory;
-
-    if (isRenaming) {
-      const { data: existingRows, error: checkError } = await supabaseClient
-        .from("services")
-        .select("id")
-        .eq("service", newCategory)
-        .limit(1);
-
-      if (checkError) {
-        console.error(checkError);
-        alert("檢查分類名稱失敗：" + checkError.message);
-        return;
-      }
-
-      if ((existingRows || []).length > 0) {
-        alert("這個分類名稱已經存在，請使用其他名稱。");
-        return;
-      }
-    }
-
-    categoryButton.disabled = true;
-    categoryButton.textContent = "儲存中……";
-
-    const { error } = await supabaseClient
-      .from("services")
-      .update({
-        service: newCategory,
-        category_description: description
-      })
-      .eq("service", oldCategory);
-
-    if (error) {
-      console.error(error);
-      alert("分類更新失敗：" + error.message);
-      categoryButton.disabled = false;
-      categoryButton.textContent = "儲存分類名稱與簡介";
-      return;
-    }
-
-    categoryButton.textContent = "✓ 已儲存";
+    categoryButton.disabled = true; categoryButton.textContent = "儲存中……";
+    const { error } = await supabaseClient.from("services").update({ service:newCategory, category_description:description }).eq("service", oldCategory);
+    if (error) { console.error(error); alert("分類更新失敗：" + error.message); categoryButton.disabled=false; categoryButton.textContent="儲存分類名稱與簡介"; return; }
     await loadServices();
-
-    setTimeout(() => {
-      categoryButton.disabled = false;
-      categoryButton.textContent = "儲存分類名稱與簡介";
-    }, 1500);
-
     return;
   }
 
@@ -2185,12 +2003,6 @@ document.addEventListener("click", async (event) => {
   );
 
   const descriptionInput = document.querySelector(
-  `.service-description-input[data-service-id="${serviceId}"]`
-);
-
-  if (!input) {
-    return;
-const descriptionInput = document.querySelector(
   `.service-description-input[data-service-id="${serviceId}"]`
 );
 
