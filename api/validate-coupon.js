@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     }
 
     const couponResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(code)}&active=eq.true&select=id,code,type,value,expires_at,max_uses,one_per_user&limit=1`,
+      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(code)}&active=eq.true&select=id,code,type,value,expires_at,max_uses,one_per_user,services&limit=1`,
       { headers }
     );
     if (!couponResponse.ok) throw new Error("無法驗證優惠碼。");
@@ -55,6 +55,9 @@ export default async function handler(req, res) {
     if (!coupon) return json(res, 404, { error: "優惠碼不存在或已停用。" });
     if (coupon.expires_at && new Date(coupon.expires_at) <= new Date()) {
       return json(res, 400, { error: "優惠碼已過期。" });
+    }
+    if (Array.isArray(coupon.services) && coupon.services.length && !coupon.services.includes(selected.service)) {
+      return json(res, 400, { error: "這個優惠碼不適用於目前選擇的服務。" });
     }
 
     const usageResponse = await fetch(
@@ -85,7 +88,8 @@ export default async function handler(req, res) {
       value,
       discount_amount: Math.round(discountAmount * 100) / 100,
       original_price: originalPrice,
-      one_per_user: coupon.one_per_user
+      one_per_user: coupon.one_per_user,
+      services: coupon.services || []
     });
   } catch (error) {
     console.error(error);
