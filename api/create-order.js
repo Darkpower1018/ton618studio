@@ -87,13 +87,14 @@ export default async function handler(req, res) {
 
     if (userId) {
       const discountResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/discounts?user_id=eq.${userId}&active=eq.true&select=id,type,value,expires_at&order=created_at.desc&limit=1`,
+        `${SUPABASE_URL}/rest/v1/discounts?user_id=eq.${userId}&active=eq.true&select=id,type,value,expires_at,services&order=created_at.desc&limit=1`,
         { headers }
       );
       if (discountResponse.ok) {
         const discounts = await discountResponse.json();
         const discount = discounts?.[0];
-        if (discount && (!discount.expires_at || new Date(discount.expires_at) > new Date())) {
+        if (discount && (!discount.expires_at || new Date(discount.expires_at) > new Date()) &&
+            (!Array.isArray(discount.services) || !discount.services.length || discount.services.includes(selected.service))) {
           const value = Math.max(0, Number(discount.value || 0));
           accountDiscountAmount = discount.type === "percent"
             ? Math.min(originalPrice, originalPrice * Math.min(value, 100) / 100)
@@ -104,7 +105,7 @@ export default async function handler(req, res) {
 
     if (couponCode) {
       const couponResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(couponCode)}&active=eq.true&select=id,code,type,value,expires_at,max_uses,one_per_user&limit=1`,
+        `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(couponCode)}&active=eq.true&select=id,code,type,value,expires_at,max_uses,one_per_user,services&limit=1`,
         { headers }
       );
       if (!couponResponse.ok) throw new Error("無法驗證優惠碼。");
@@ -112,6 +113,9 @@ export default async function handler(req, res) {
       if (!coupon) return json(res, 400, { error: "優惠碼不存在或已停用。" });
       if (coupon.expires_at && new Date(coupon.expires_at) <= new Date()) {
         return json(res, 400, { error: "優惠碼已過期。" });
+      }
+      if (Array.isArray(coupon.services) && coupon.services.length && !coupon.services.includes(selected.service)) {
+        return json(res, 400, { error: "這個優惠碼不適用於目前選擇的服務。" });
       }
 
       const usageResponse = await fetch(
