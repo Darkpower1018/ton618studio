@@ -866,6 +866,8 @@
       <small>輸入已註冊會員的 Email。優惠由後台控制，客戶無法自行修改。</small>
       <input type="email" id="discountEmail" placeholder="客戶 Email 或暱稱">
       <select id="discountType"><option value="percent">百分比折扣</option><option value="fixed">固定金額減免</option></select>
+      <label for="discountServices">適用服務（可多選；不選 = 全部服務）</label>
+      <select id="discountServices" multiple size="4"></select>
       <input type="number" id="discountValue" min="0" step="0.01" placeholder="例如 10 = 10% 或 HKD $10">
       <input type="datetime-local" id="discountExpires">
       <input type="text" id="discountNote" placeholder="備註（可選）">
@@ -881,6 +883,8 @@
           <option value="percent">百分比折扣</option>
           <option value="fixed">固定金額減免</option>
         </select>
+        <label for="newCouponServices">適用服務（可多選；不選 = 全部服務）</label>
+        <select id="newCouponServices" multiple size="4"></select>
         <input type="number" id="newCouponValue" min="0.01" step="0.01" placeholder="例如 10">
         <input type="number" id="newCouponMaxUses" min="0" step="1" placeholder="最大使用次數（0 = 無限）">
         <label style="display:flex;align-items:center;gap:8px;margin:0;color:#d9d4e1;">
@@ -1056,7 +1060,7 @@
     if (!discountList) return;
     const { data, error } = await supabaseClient
       .from("discounts")
-      .select("id,user_id,type,value,active,expires_at,note,created_at")
+      .select("id,user_id,type,value,active,expires_at,note,created_at,services")
       .order("created_at", { ascending:false });
     if (error) {
       discountList.innerHTML = '<div class="empty">無法載入會員優惠。<br><br>' + escapeHtml(error.message) + '<br><br>請確認已執行 supabase/customer_accounts_discounts.sql，且目前登入帳號 role 為 admin。</div>';
@@ -1070,7 +1074,7 @@
     discountList.innerHTML=data.map(d=>{
       const value=d.type==="percent"?Number(d.value)+"% OFF":"HKD -$"+Number(d.value).toFixed(2);
       const exp=d.expires_at?new Date(d.expires_at).toLocaleString("zh-HK"):"永久";
-      return '<div class="card" style="margin-top:12px;padding:18px;"><strong>'+escapeHtml(profileMap[d.user_id]?.display_name || profileMap[d.user_id]?.email || d.user_id)+'</strong><div class="muted" style="margin-top:7px;">'+escapeHtml(value)+'｜'+escapeHtml(d.active?"啟用":"停用")+'｜到期：'+escapeHtml(exp)+(d.note?"<br>備註："+escapeHtml(d.note):"")+'</div><button type="button" class="toggle-discount-btn" data-discount-id="'+escapeAttribute(d.id)+'" data-active="'+escapeAttribute(d.active)+'" style="margin-top:12px;">'+(d.active?"停用優惠":"啟用優惠")+'</button></div>';
+      return '<div class="card" style="margin-top:12px;padding:18px;"><strong>'+escapeHtml(profileMap[d.user_id]?.display_name || profileMap[d.user_id]?.email || d.user_id)+'</strong><div class="muted" style="margin-top:7px;">'+escapeHtml(value)+'｜'+escapeHtml(d.active?"啟用":"停用")+'｜適用：'+escapeHtml((d.services||[]).length?d.services.join("、"):"全部服務")+'｜到期：'+escapeHtml(exp)+(d.note?"<br>備註："+escapeHtml(d.note):"")+'</div><button type="button" class="toggle-discount-btn" data-discount-id="'+escapeAttribute(d.id)+'" data-active="'+escapeAttribute(d.active)+'" style="margin-top:12px;">'+(d.active?"停用優惠":"啟用優惠")+'</button></div>';
     }).join("");
   }
 
@@ -1080,12 +1084,13 @@
     const value=Number(document.getElementById("discountValue").value);
     const expiresRaw=document.getElementById("discountExpires").value;
     const note=document.getElementById("discountNote").value.trim();
+    const services=Array.from(document.getElementById("discountServices").selectedOptions).map(option=>option.value);
     if(!email || !Number.isFinite(value) || value<=0 || (type==="percent" && value>100)){discountStatus.textContent="請輸入有效的 Email、優惠數值（百分比不可超過 100）。";return;}
     discountStatus.textContent="尋找會員中……"; saveDiscountBtn.disabled=true;
     const {data:profiles,error:pError}=await supabaseClient.from("profiles").select("id,email,display_name").or("email.ilike.%" + email.replace(/,/g,"") + "%,display_name.ilike.%" + email.replace(/,/g,"") + "%").limit(20);
     if(pError || !profiles?.length){discountStatus.textContent="找不到這個會員。請確認他已經註冊帳號。";saveDiscountBtn.disabled=false;return;}
     if(profiles.length > 1){discountStatus.textContent="找到多個帳號，請輸入更完整的 Email 或暱稱。";saveDiscountBtn.disabled=false;return;}
-    const {error}=await supabaseClient.from("discounts").insert({user_id:profiles[0].id,type,value,active:true,expires_at:expiresRaw?new Date(expiresRaw).toISOString():null,note:note||null});
+    const {error}=await supabaseClient.from("discounts").insert({user_id:profiles[0].id,type,value,services,active:true,expires_at:expiresRaw?new Date(expiresRaw).toISOString():null,note:note||null});
     if(error){discountStatus.textContent="套用優惠失敗："+error.message;saveDiscountBtn.disabled=false;return;}
     discountStatus.textContent="✓ 優惠已套用。";document.getElementById("discountValue").value="";document.getElementById("discountExpires").value="";document.getElementById("discountNote").value="";saveDiscountBtn.disabled=false;await loadDiscounts();
   });
@@ -1110,7 +1115,7 @@
 
     const { data, error } = await supabaseClient
       .from("coupons")
-      .select("id,code,type,value,active,expires_at,max_uses,one_per_user,note,created_at")
+      .select("id,code,type,value,active,expires_at,max_uses,one_per_user,note,created_at,services")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1155,6 +1160,7 @@
         escapeHtml(coupon.active ? "啟用" : "停用") +
         '｜使用：' + escapeHtml(limit) +
         '｜到期：' + escapeHtml(expiry) +
+        '<br>適用：' + escapeHtml((coupon.services||[]).length ? coupon.services.join("、") : "全部服務") +
         (coupon.one_per_user ? '<br>每個帳號限用一次' : '') +
         (coupon.note ? '<br>備註：' + escapeHtml(coupon.note) : '') +
         '</div>' +
@@ -1173,6 +1179,7 @@
     const onePerUser = document.getElementById("newCouponOnePerUser").checked;
     const expiresRaw = document.getElementById("newCouponExpires").value;
     const note = document.getElementById("newCouponNote").value.trim();
+    const services = Array.from(document.getElementById("newCouponServices").selectedOptions).map(option => option.value);
 
     if (!/^[A-Z0-9_-]+$/.test(code)) {
       couponAdminStatus.textContent = "優惠碼只能使用英文字母、數字、底線或連字號。";
@@ -1199,6 +1206,7 @@
       expires_at: expiresRaw ? new Date(expiresRaw).toISOString() : null,
       max_uses: maxUses,
       one_per_user: onePerUser,
+      services,
       note: note || null
     });
 
