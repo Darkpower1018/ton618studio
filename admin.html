@@ -1056,6 +1056,24 @@
   const discountStatus = document.getElementById("discountStatus");
   const saveDiscountBtn = document.getElementById("saveDiscountBtn");
 
+  async function loadDiscountServiceOptions() {
+    const { data, error } = await supabaseClient
+      .from("services")
+      .select("service")
+      .eq("active", true);
+    if (error) {
+      if (discountStatus) discountStatus.textContent = "無法載入服務選項：" + error.message;
+      if (couponAdminStatus) couponAdminStatus.textContent = "無法載入服務選項：" + error.message;
+      return;
+    }
+    const serviceNames = [...new Set((data || []).map(row => row.service).filter(Boolean))].sort();
+    const options = serviceNames.map(name => '<option value="' + escapeAttribute(name) + '">' + escapeHtml(name) + '</option>').join("");
+    ["discountServices", "newCouponServices"].forEach(id => {
+      const select = document.getElementById(id);
+      if (select) select.innerHTML = options;
+    });
+  }
+
   async function loadDiscounts() {
     if (!discountList) return;
     const { data, error } = await supabaseClient
@@ -1457,7 +1475,9 @@
     await loadGunsyncVideo();
     await loadSiteLogo();
     await loadSiteOg();
+    await loadDiscountServiceOptions();
     await loadDiscounts();
+    await loadCoupons();
 
   }
 
