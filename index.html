@@ -731,8 +731,11 @@ const applyCouponBtn = document.getElementById("applyCouponBtn");
 const couponStatus = document.getElementById("couponStatus");
 let accountSignupMode = false;
 
-function formatDiscount(discount, originalPrice) {
+function formatDiscount(discount, originalPrice, serviceName) {
   if (!discount) return { amount:0, label:"" };
+  if (Array.isArray(discount.services) && discount.services.length && !discount.services.includes(serviceName)) {
+    return { amount:0, label:"" };
+  }
   const value = Number(discount.value || 0);
   const amount = discount.type === "percent" ? originalPrice * Math.min(value,100) / 100 : Math.min(value, originalPrice);
   return { amount:Math.round(amount*100)/100, label:discount.type === "percent" ? value + "% OFF" : "HKD -$" + value.toFixed(2) };
@@ -793,7 +796,7 @@ async function loadCurrentProfile() {
 async function loadCustomerDiscount() {
   currentDiscount = null;
   if (!currentUser) { updateAccountUI(); return; }
-  const { data, error } = await supabaseClient.from("discounts").select("id,type,value,expires_at,note").eq("user_id", currentUser.id).eq("active", true).order("created_at", {ascending:false}).limit(1).maybeSingle();
+  const { data, error } = await supabaseClient.from("discounts").select("id,type,value,expires_at,note,services").eq("user_id", currentUser.id).eq("active", true).order("created_at", {ascending:false}).limit(1).maybeSingle();
   if (!error && data && (!data.expires_at || new Date(data.expires_at) > new Date())) currentDiscount = data;
   updateAccountUI();
   updateOrderPricePreview();
@@ -811,9 +814,10 @@ function updateOrderPricePreview() {
   }
 
   const original = Number(match[1]);
+  const selectedServiceName = value.split("｜")[0].trim();
   orderOriginalPrice.textContent = "HKD $" + original.toFixed(2);
 
-  const accountD = currentDiscount ? formatDiscount(currentDiscount, original) : {amount:0,label:""};
+  const accountD = currentDiscount ? formatDiscount(currentDiscount, original, selectedServiceName) : {amount:0,label:""};
   const couponAmount = currentCoupon ? Number(currentCoupon.discount_amount || 0) : 0;
   const useCoupon = couponAmount > accountD.amount;
   const discountAmount = useCoupon ? couponAmount : accountD.amount;
