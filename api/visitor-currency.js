@@ -12,10 +12,10 @@ export default async function handler(req, res) {
   res.setHeader("Vary", "x-vercel-ip-country");
   if (currency === "HKD") return res.status(200).json({ country, currency, rate: 1 });
   try {
-    const response = await fetch("https://api.frankfurter.app/latest?from=HKD&to=" + encodeURIComponent(currency));
+    const response = await fetch("https://api.frankfurter.dev/v2/rate/HKD/" + encodeURIComponent(currency));
     if (!response.ok) throw new Error("Exchange-rate service returned " + response.status);
     const data = await response.json();
-    const rate = Number(data.rates && data.rates[currency]);
+    const rate = Number(data.rate);
     if (!Number.isFinite(rate) || rate <= 0) throw new Error("Invalid exchange rate");
     return res.status(200).json({ country, currency, rate, date: data.date });
   } catch (error) {
