@@ -1001,6 +1001,12 @@ saveNicknameBtn?.addEventListener("click", async () => {
    網站功能
 ================================ */
 
+/* Visitor currency estimate only; checkout remains in HKD. */
+let visitorCurrency="HKD",visitorRate=1;
+const currencyByCountry={CA:"CAD",US:"USD",GB:"GBP",TW:"TWD",HK:"HKD",MO:"MOP",JP:"JPY",KR:"KRW",CN:"CNY",AU:"AUD",NZ:"NZD",SG:"SGD",MY:"MYR",TH:"THB",PH:"PHP",ID:"IDR",VN:"VND",IN:"INR",DE:"EUR",FR:"EUR",IT:"EUR",ES:"EUR",NL:"EUR",BE:"EUR",AT:"EUR",IE:"EUR",PT:"EUR",FI:"EUR",GR:"EUR",CH:"CHF",NO:"NOK",SE:"SEK",DK:"DKK",PL:"PLN",CZ:"CZK",HU:"HUF",BR:"BRL",MX:"MXN",AR:"ARS",CL:"CLP",CO:"COP",ZA:"ZAR",TR:"TRY",AE:"AED",SA:"SAR",IL:"ILS"};
+function applyVisitorCurrency(){if(visitorCurrency==="HKD")return;document.querySelectorAll(".amount[data-hkd]").forEach(node=>{let note=node.nextElementSibling;if(!note||!note.classList.contains("converted-price")){note=document.createElement("div");note.className="converted-price";note.style.cssText="margin-top:5px;color:#a98acb;font-size:12px;";node.insertAdjacentElement("afterend",note);}try{note.textContent="約 "+new Intl.NumberFormat("zh-Hant",{style:"currency",currency:visitorCurrency,maximumFractionDigits:["JPY","KRW"].includes(visitorCurrency)?0:2}).format(Number(node.dataset.hkd)*visitorRate);}catch(_){note.textContent="約 "+visitorCurrency+" "+(Number(node.dataset.hkd)*visitorRate).toFixed(2);}});}
+async function detectVisitorCurrency(){try{const loc=await fetch("/api/visitor-location");if(!loc.ok)return;const info=await loc.json();const currency=currencyByCountry[info.country];if(!currency||currency==="HKD")return;const response=await fetch("https://api.frankfurter.app/latest?from=HKD&to="+encodeURIComponent(currency));if(!response.ok)return;const data=await response.json();const rate=Number(data.rates?.[currency]);if(!Number.isFinite(rate)||rate<=0)return;visitorCurrency=currency;visitorRate=rate;applyVisitorCurrency();}catch(error){console.warn("訪客貨幣偵測失敗，維持 HKD 顯示：",error);}}
+
 async function loadServices() {
 
   const { data, error } = await supabaseClient
@@ -1126,7 +1132,7 @@ async function loadServices() {
                 <div class="price ${index === 1 ? "hot" : ""}">
                   <small>${m.code} / ${String(index + 1).padStart(2, "0")}</small>
                   <h3>${escapeHtml(item.package || "方案")}</h3>
-                  <div class="amount"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
+                  <div class="amount" data-hkd="${escapeAttribute(String(item.price))}"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
                   <p class="service-description">${escapeHtml(item.description || "")}</p>
                   <button data-service="${escapeAttribute(`${item.service}｜${item.package} HKD $${item.price}`)}">選擇套餐</button>
                 </div>
@@ -1139,7 +1145,7 @@ async function loadServices() {
               <div class="price ${index === 1 ? "hot" : ""}">
                 <small>${m.code} / ${String(index + 1).padStart(2, "0")}</small>
                 <h3>${escapeHtml(item.package || "方案")}</h3>
-                <div class="amount"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
+                <div class="amount" data-hkd="${escapeAttribute(String(item.price))}"><i>HKD</i> $${escapeHtml(String(item.price))}</div>
                 <p class="service-description">${escapeHtml(item.description || "")}</p>
                 <button data-service="${escapeAttribute(`${item.service}｜${item.package} HKD $${item.price}`)}">選擇套餐</button>
               </div>
@@ -1150,6 +1156,8 @@ async function loadServices() {
       `;
     }).join("");
   }
+
+  applyVisitorCurrency();
 
   const nav = document.getElementById("serviceNav");
   if (nav) {
@@ -1228,6 +1236,7 @@ async function loadWorks() {
 
 loadServices();
 loadWorks();
+detectVisitorCurrency();
   async function loadOrderServices() {
 
   const {
